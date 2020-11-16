@@ -1,0 +1,116 @@
+{
+  "name": "redis-x-iterable",
+  "version": "0.0.1",
+  "license": "MIT",
+  "main": "lib/commonjs/redis-x-iterable.js",
+  "exports": {
+    ".": {
+      "import": "./lib/es2018/redis-x-iterable.js",
+      "require": "./lib/commonjs/redis-x-iterable.js"
+    }
+  },
+  "files": [
+    "lib",
+    "!**/*.spec.js"
+  ],
+  "scripts": {
+    "build": "rm -rf lib && npm run lint && npm run compile",
+    "compile": "tsc && tsc --module commonjs --outDir ./lib/commonjs",
+    "commitlint": "commitlint -f $(git rev-list --tags --max-count=1) -t $(git log --pretty=%H | head -1)",
+    "lint": "eslint \"src/**/*\" --fix --ext \"*.ts\"",
+    "prepublishOnly": "npm run build && test",
+    "test": "jest --passWithNoTests",
+    "watch": "npm run build && concurrently -k \"npm:watch:typescript\" \"npm:watch:test\" -c blue,green",
+    "watch:test": "jest --watchAll",
+    "watch:typescript": "tsc -w"
+  },
+  "dependencies": {
+    "@calebboyd/async": "^2.0.1",
+    "ioredis": "^4.19.4"
+  },
+  "peerDependencies": {
+    "@types/ioredis": "^4"
+  },
+  "peerDependenciesMeta": {
+    "@types/ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^11.0.0",
+    "@commitlint/config-angular": "^11.0.0",
+    "@types/ioredis": "^4.17.7",
+    "@types/jest": "^26.0.19",
+    "@types/node": "^14.14.14",
+    "@typescript-eslint/eslint-plugin": "^4.10.0",
+    "@typescript-eslint/parser": "^4.10.0",
+    "concurrently": "^5.3.0",
+    "eslint": "^7.15.0",
+    "eslint-config-prettier": "~7.0.0",
+    "eslint-plugin-prettier": "^3.3.0",
+    "jest": "^26.6.3",
+    "prettier": "^2.2.1",
+    "ts-jest": "^26.4.4",
+    "typescript": "^4.1.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testPathIgnorePatterns": [
+      ".*\\.js"
+    ]
+  },
+  "prettier": {
+    "parser": "typescript",
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-angular"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "build",
+          "ci",
+          "docs",
+          "feat",
+          "fix",
+          "perf",
+          "refactor",
+          "release",
+          "revert",
+          "style",
+          "test"
+        ]
+      ]
+    }
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "plugin:@typescript-eslint/recommended",
+      "prettier/@typescript-eslint",
+      "plugin:prettier/recommended"
+    ],
+    "ignorePatterns": [
+      "*.d.ts"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.spec.ts"
+        ],
+        "env": {
+          "jest": true
+        }
+      }
+    ],
+    "rules": {
+      "@typescript-eslint/no-use-before-define": 0
+    }
+  }
+}
