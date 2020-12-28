@@ -1,17 +1,15 @@
-import { Redis } from 'ioredis'
-import { Mode } from './mode'
+import { Redis, RedisOptions } from 'ioredis'
 
 export type StreamEntryId = string
 export type StreamKey = string
 export type StreamEntryKeyValues = string[]
 export type StreamEntry = [StreamEntryId, StreamEntryKeyValues]
 
+//this type is not returned by redis but we're going to use it to dispense entries
+export type XEntryResult = [StreamKey, StreamEntry]
 //Result Types from iterator
 export type XStreamResult = [StreamKey, StreamEntry[]]
 export type XBatchResult = XStreamResult[]
-
-//this type is not returned by redis but we're going to use it to dispense entries
-export type XEntryResult = [StreamKey, StreamEntry]
 
 export { Redis as RedisClient }
 
@@ -19,7 +17,29 @@ export class RedisStreamAbortedError extends Error {
   message = 'RedisStream Aborted with unprocessed results'
 }
 
-export interface XIterableOptions<T extends Mode> {
+export type Mode = 'entry' | 'stream' | 'batch'
+
+export const modes = {
+  entry: true,
+  stream: true,
+  batch: true,
+} as const
+
+export const env: { REDIS_X_STREAM_URL?: string } = {}
+if (typeof process !== 'undefined' && process.env) {
+  env.REDIS_X_STREAM_URL = process.env.REDIS_X_STREAM_URL
+}
+export interface RedisStreamOptions<T extends Mode> {
+  /**
+   * 'entry' mode is default and will iterate over each stream entry in each stream in the result set
+   * 'stream' mode will iterate over each XREAD[GROUP] stream result
+   * 'batch' mode will iterate over each XREAD[GROUP] call result
+   */
+  mode?: T
+  /**
+   * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
+   */
+  streams: string[] | Record<string, string>
   /**
    * The consumer group.
    * Note: if only a group is provided a consumer is created automatically
@@ -31,27 +51,26 @@ export interface XIterableOptions<T extends Mode> {
    */
   consumer?: string
   /**
-   * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
-   */
-  keys: string[] | Record<string, string>
-  /**
    * The IORedis client connection.
    * NOTE: by default this connection becomes a "reader" when block > 0
    */
-  redis?: Redis
+  redis?: Redis | string | RedisOptions
   /**
    * The longest amount of time in milliseconds the dispenser should block
    * while waiting for new entries on any stream
-   * @default 5000
    */
-  blockMs?: number
-  mode?: T
+  block?: number
   /**
    * The maximum number of entries to retrieve in a single read operation
-   * Defaults to streamKeys * concurrency
+   * "highWaterMark"
    * @default 100
    */
   count?: number
+  /**
+   * NOACK causes redis to bypass the Pending Entries List
+   * @default false
+   */
+  noack?: true
   /**
    * The number of entries to batch ack and remove from the PEL
    * Default behavior or a dispenser is "at least once delivery"
@@ -61,13 +80,24 @@ export interface XIterableOptions<T extends Mode> {
    * The higher ackBatchSize is - a dispenser failure/recovery could deliver messages more than once from the PEL
    *
    * An ackBatchSize of 0 utilizes the NOACK flag -- items are not added to a PEL and ackIntervalMs is ignored.
-   * @default count
+   * @default 100
    */
-  ackBatchSize?: number
+  pendingAckThreshold?: number
   /**
-   * The amount of time to wait before acknowledging queued acks
-   * This timer accounts for periods where ackBatchSize is not yet reached.
-   * NOTE: Graceful shutdown will flush buffered acks from the PEL.
+   * By default, Iterables utilizing consumer groups will
+   * automatically queue acknowledgments for previously iterated entries.
+   * @default true
    */
-  flushAckDelayMs?: number
+  ackOnIterate?: boolean
+  /**
+   * By default, Iterables utilizing consumer groups will
+   * automatically queue acknowledgments for previously iterated entries.
+   * @default false
+   */
+  deleteOnAck?: boolean
+  /**
+   * If iteration is slow, set this to the maximum amount of time that will elapse before pending acks will be flushed.
+   * This counter is reset after each ack
+   */
+  flushPendingAckInterval?: number
 }

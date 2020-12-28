@@ -1,17 +1,9 @@
 import Redis from 'ioredis'
-import { RedisStream } from './redis-x-iterable'
+import { RedisStream } from './stream'
+import { RedisClient } from './types'
+import { delay, hydrateForTest, quit, times } from './test.util.spec'
 
-type RedisClient = Redis.Redis
-
-function hydrateForTest(writer: RedisClient, stream: string, ...values: string[][]) {
-  const pipeline = writer.pipeline()
-  for (const [key, value] of values) {
-    pipeline.xadd(stream, '*', key, value)
-  }
-  return pipeline.exec()
-}
-
-describe('redis-x-iterable', () => {
+describe('redis-x-stream', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string
   const streams = new Set<string>()
   const testEntries = [
@@ -29,8 +21,7 @@ describe('redis-x-iterable', () => {
     writer = new Redis()
   })
   afterAll(async () => {
-    await writer.quit()
-    return writer.disconnect()
+    await quit(writer)
   })
   beforeEach(() => {
     prefix = Math.random().toString(36).slice(6) + '_'
@@ -41,17 +32,14 @@ describe('redis-x-iterable', () => {
       await writer.del(stream)
     }
     streams.clear()
-    await reader.quit()
-    return reader.disconnect()
+    await quit(reader)
   })
   it('should dispense in batch mode', async () => {
     const streamName = stream('my-stream')
     await hydrateForTest(writer, streamName, ...testEntries)
     const iterable = new RedisStream({
-      redis: reader,
-      blockMs: 2,
       mode: 'batch',
-      keys: { [streamName]: '0' },
+      streams: { [streamName]: '0' },
     })
     let asserted = false
     for await (const results of iterable) {
@@ -65,13 +53,15 @@ describe('redis-x-iterable', () => {
     }
     expect(asserted).toBeTruthy()
   })
-  it('should dispense in entry mode', async () => {
-    const streamName = stream('my-stream')
+  it('should dispense in entry mode (default)', async () => {
+    const streamName = stream('my-straam'),
+      iterable = new RedisStream(streamName),
+      redisIdRegex = /\d+-\d/
+
     await hydrateForTest(writer, streamName, ...testEntries)
-    const iterable = new RedisStream(streamName)
-    let entryIdx = 0
-    let asserted = false
-    const redisIdRegex = /\d+-\d/
+    let entryIdx = 0,
+      asserted = false
+
     for await (const [str, entry] of iterable) {
       asserted = true
       expect(str).toEqual(streamName)
@@ -80,5 +70,33 @@ describe('redis-x-iterable', () => {
     }
     expect(asserted).toBeTruthy()
     expect(entryIdx).toEqual(testEntries.length)
+  })
+
+  it('should block waiting for new entries', async () => {
+    let entries = 0
+    const streamName = stream('my-stream'),
+      redisIdRegex = /\d+-\d/,
+      block = 1000,
+      iterable = new RedisStream({
+        block,
+        streams: [streamName],
+      }),
+      hydrate = () => hydrateForTest(writer, streamName, ...testEntries),
+      iterate = async () => {
+        for await (const [str, entry] of iterable) {
+          entries++
+          expect(str).toEqual(streamName)
+          expect(entry[0]).toMatch(redisIdRegex)
+        }
+      },
+      consuming = iterate()
+
+    times(1, hydrate)
+    await delay(block)
+    times(9, hydrate)
+    await delay(block)
+    times(10, hydrate)
+    await consuming
+    expect(entries).toEqual(testEntries.length * 20)
   })
 })

@@ -1,30 +1,22 @@
 ```
 Work in progress 🚧👷‍♂️🔨
 ```
+# redis-x-stream
 
-# redis-x-iterable
+An [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/asyncIterator) that emits redis stream entries.
+Requires Redis 5 or greater. 
 
-An Async Iterable Interface for redis streams.
+## Getting Started
 
 ```javascript
-import { RedisStream } from 'redis-x-iterable'
+import { RedisStream } from 'redis-x-stream'
 
-for await (const [id, keyVal] of new RedisStream('myStream')) {
-
+for await (const [stream, entry] of new RedisStream('myStream')) {
+  //process an entry
 }
 ```
-Additional options can utilize XREADGROUP
-```javascript
-
-const stream = new RedisStream({  
-  keys: {
-    'my-stream': ">"
-  },
-  group: 'mygroup',
-  consumer: 'myconsumer',
-  count: 100,
-  blockMs: Infinity,
-  
-  redis: redisClient,
-})
-```
+## TODO
+- [ ] xreadgroup
+- [ ] ack
+- [ ] del
+- [ ] eager load?
