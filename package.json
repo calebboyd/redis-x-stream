@@ -2,13 +2,14 @@
   "name": "redis-x-stream",
   "version": "0.0.0-development",
   "license": "MIT",
-  "main": "lib/commonjs/stream.js",
+  "main": "./lib/commonjs/stream.js",
   "exports": {
     ".": {
       "import": "./lib/es2018/stream.js",
       "require": "./lib/commonjs/stream.js"
     }
   },
+  "type": "module",
   "files": [
     "lib",
     "!**/*.spec.js"
