@@ -1,6 +1,6 @@
-import { readAckDelete } from './redis'
-import { RedisStream } from './stream'
-import { StreamEntry, XEntryResult, XStreamResult } from './types'
+import { readAckDelete } from './redis.js'
+import { RedisStream } from './stream.js'
+import { StreamEntry, XEntryResult, XStreamResult } from './types.js'
 
 export function xReadIterable(
   this: RedisStream<'batch'>

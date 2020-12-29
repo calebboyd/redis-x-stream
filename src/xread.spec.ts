@@ -1,7 +1,7 @@
 import Redis from 'ioredis'
-import { RedisStream } from './stream'
-import { RedisClient } from './types'
-import { delay, hydrateForTest, quit, times } from './test.util.spec'
+import { RedisStream } from './stream.js'
+import { RedisClient } from './types.js'
+import { delay, hydrateForTest, quit, times } from './test.util.spec.js'
 
 describe('redis-x-stream xread', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string

@@ -1,6 +1,6 @@
 import { Pipeline } from 'ioredis'
-import { RedisStream } from './stream'
-import { XBatchResult } from './types'
+import { RedisStream } from './stream.js'
+import { XBatchResult } from './types.js'
 
 export async function readAckDelete(stream: RedisStream<any>): Promise<XBatchResult> {
   const pipeline = stream.client.pipeline(),

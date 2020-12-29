@@ -1,4 +1,4 @@
-import { RedisClient } from './types'
+import { RedisClient } from './types.js'
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms)),
   times = <T>(count: number, fn: () => T): Array<T> => Array.from(Array(count), fn) as T[],

@@ -7,8 +7,8 @@ import {
   Mode,
   modes,
   env,
-} from './types'
-import { xReadIterableStream, xReadIterableEntries, xReadIterable } from './xread'
+} from './types.js'
+import { xReadIterableStream, xReadIterableEntries, xReadIterable } from './xread.js'
 
 type StreamKeys = [string, string[]][]
 
