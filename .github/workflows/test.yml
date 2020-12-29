@@ -3,6 +3,8 @@ on: push
 jobs:
   release:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
     needs: test
     steps:
       - uses: actions/checkout@v2
