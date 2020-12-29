@@ -1,6 +1,6 @@
 {
-  "name": "redis-",
-  "version": "0.0.1",
+  "name": "redis-x-stream",
+  "version": "0.0.0-development",
   "license": "MIT",
   "main": "lib/commonjs/stream.js",
   "exports": {
@@ -18,7 +18,7 @@
     "compile": "tsc && tsc --module commonjs --outDir ./lib/commonjs",
     "commitlint": "commitlint -f $(git rev-list --tags --max-count=1) -t $(git log --pretty=%H | head -1)",
     "lint": "eslint \"src/**/*\" --fix --ext \"*.ts\"",
-    "prepublishOnly": "npm run build && test",
+    "prepublishOnly": "npm run build",
     "test": "jest --passWithNoTests",
     "watch": "npm run build && concurrently -k \"npm:watch:typescript\" \"npm:watch:test\" -c blue,green",
     "watch:test": "jest --watchAll",
@@ -114,5 +114,30 @@
     "rules": {
       "@typescript-eslint/no-use-before-define": 0
     }
+  },
+  "contributors": [
+    {
+      "name": "Caleb Boyd",
+      "url": "https://github.com/calebboyd"
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/calebboyd/redis-x-stream.git"
+  },
+  "release": {
+    "branches": [
+      "+([0-9])?(.{+([0-9]),x}).x",
+      "main",
+      "next",
+      "next-major",
+      {
+        "name": "beta",
+        "prerelease": true
+      },
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
+    ]
   }
 }
