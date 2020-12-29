@@ -48,6 +48,7 @@
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-angular": "^11.0.0",
+    "@jedmao/semantic-release-npm-github-config": "^1.0.9",
     "@types/ioredis": "^4.17.7",
     "@types/jest": "^26.0.19",
     "@types/node": "^14.14.16",
@@ -143,8 +144,6 @@
         "prerelease": true
       }
     ],
-    "plugins": [
-      
-    ]
+    "extends": "@jedmao/semantic-release-npm-github-config"
   }
 }
