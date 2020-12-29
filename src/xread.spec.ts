@@ -3,26 +3,24 @@ import { RedisStream } from './stream'
 import { RedisClient } from './types'
 import { delay, hydrateForTest, quit, times } from './test.util.spec'
 
-describe('redis-x-stream', () => {
+describe('redis-x-stream xread', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string
-  const streams = new Set<string>()
-  const testEntries = [
-    ['1', 'hi'],
-    ['2', 'hello'],
-    ['3', 'hai'],
-  ]
-
-  function stream(key: string) {
-    key = prefix + key
-    if (!streams.has(key)) streams.add(key)
-    return key
-  }
+  const streams = new Set<string>(),
+    testEntries = [
+      ['1', 'hi'],
+      ['2', 'hello'],
+      ['3', 'hai'],
+    ],
+    key = (name: string) => {
+      name = prefix + name
+      if (!streams.has(name)) streams.add(name)
+      return name
+    }
   beforeAll(() => {
     writer = new Redis()
   })
-  afterAll(async () => {
-    await quit(writer)
-  })
+  afterAll(() => quit(writer))
+
   beforeEach(() => {
     prefix = Math.random().toString(36).slice(6) + '_'
     reader = new Redis()
@@ -32,10 +30,10 @@ describe('redis-x-stream', () => {
       await writer.del(stream)
     }
     streams.clear()
-    await quit(reader)
+    return quit(reader)
   })
   it('should dispense in batch mode', async () => {
-    const streamName = stream('my-stream')
+    const streamName = key('my-stream')
     await hydrateForTest(writer, streamName, ...testEntries)
     const iterable = new RedisStream({
       mode: 'batch',
@@ -54,7 +52,7 @@ describe('redis-x-stream', () => {
     expect(asserted).toBeTruthy()
   })
   it('should dispense in entry mode (default)', async () => {
-    const streamName = stream('my-straam'),
+    const streamName = key('my-straam'),
       iterable = new RedisStream(streamName),
       redisIdRegex = /\d+-\d/
 
@@ -74,7 +72,7 @@ describe('redis-x-stream', () => {
 
   it('should block waiting for new entries', async () => {
     let entries = 0
-    const streamName = stream('my-stream'),
+    const streamName = key('my-stream'),
       redisIdRegex = /\d+-\d/,
       block = 1000,
       iterable = new RedisStream({

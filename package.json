@@ -20,7 +20,6 @@
     "lint": "eslint \"src/**/*\" --fix --ext \"*.ts\"",
     "prepublishOnly": "npm run build && test",
     "test": "jest --passWithNoTests",
-    "test:ci": "jest --passWithNoTests --reporters=jest-github-actions-reporter",
     "watch": "npm run build && concurrently -k \"npm:watch:typescript\" \"npm:watch:test\" -c blue,green",
     "watch:test": "jest --watchAll",
     "watch:typescript": "tsc -w"

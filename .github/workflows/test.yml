@@ -23,6 +23,6 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
-      - run: npm run test:ci
+      - run: npm run test -- --reporters=jest-github-actions-reporter
           
           

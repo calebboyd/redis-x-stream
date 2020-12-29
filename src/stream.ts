@@ -106,7 +106,7 @@ export class RedisStream<T extends Mode = 'entry'> {
     }
   }
 
-  protected async return(): Promise<IteratorReturnResult<void>> {
+  public async quit(): Promise<void> {
     if (!this.done) {
       this.done = true
       this.createdConnection &&
@@ -115,11 +115,9 @@ export class RedisStream<T extends Mode = 'entry'> {
           this.client.quit(),
         ]))
     }
-    return { done: true, value: void 0 }
   }
 
-  ack({ streams }: { streams: StreamKeys }): void {
-    this.client.status
+  public ack({ streams }: { streams: StreamKeys }): void {
     if (!this.group) {
       throw new Error('Cannot ack entries read outside of a consumer group')
     }
@@ -128,6 +126,11 @@ export class RedisStream<T extends Mode = 'entry'> {
       acks.push(...ids)
       this.pendingAcks.set(stream, acks)
     }
+  }
+
+  protected async return(): Promise<IteratorReturnResult<void>> {
+    await this.quit()
+    return { done: true, value: void 0 }
   }
 }
 

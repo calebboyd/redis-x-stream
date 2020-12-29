@@ -1,11 +1,12 @@
 import { RedisClient } from './types'
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
-  times = <T>(count: number, fn: () => T) => Array.from(Array(count), fn) as T[],
-  quit = async (client: RedisClient) => {
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms)),
+  times = <T>(count: number, fn: () => T): Array<T> => Array.from(Array(count), fn) as T[],
+  quit = async (client: RedisClient): Promise<void> => {
     await client.quit()
     return new Promise((resolve) => client.once('end', resolve))
-  }
+  },
+  rand = (): string => Math.random().toString(36).slice(6)
 
 function hydrateForTest(writer: RedisClient, stream: string, ...values: string[][]): Promise<any> {
   const pipeline = writer.pipeline()
@@ -15,4 +16,4 @@ function hydrateForTest(writer: RedisClient, stream: string, ...values: string[]
   return pipeline.exec()
 }
 
-export { delay, times, quit, hydrateForTest }
+export { delay, times, quit, hydrateForTest, rand }
