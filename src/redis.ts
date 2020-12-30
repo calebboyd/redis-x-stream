@@ -2,7 +2,10 @@ import { Pipeline } from 'ioredis'
 import { RedisStream } from './stream.js'
 import { XBatchResult } from './types.js'
 
-export async function readAckDelete(stream: RedisStream<any>): Promise<XBatchResult> {
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+type KindaAny = any
+
+export async function readAckDelete(stream: RedisStream<KindaAny>): Promise<XBatchResult> {
   const pipeline = stream.client.pipeline(),
     read = stream.group ? xreadgroup : xread
   read(pipeline, stream)
@@ -14,7 +17,7 @@ export async function readAckDelete(stream: RedisStream<any>): Promise<XBatchRes
   return result[0][1]
 }
 
-function ack(client: Pipeline, { deleteOnAck, pendingAcks, group }: RedisStream<any>): void {
+function ack(client: Pipeline, { deleteOnAck, pendingAcks, group }: RedisStream<KindaAny>): void {
   if (!group) return
   const toAck = [...pendingAcks.entries()]
   pendingAcks.clear()
@@ -23,7 +26,7 @@ function ack(client: Pipeline, { deleteOnAck, pendingAcks, group }: RedisStream<
     if (deleteOnAck) client.xdel(stream, ...ids)
   }
 }
-function xread(client: Pipeline, { block, count, streams }: RedisStream<any>): void {
+function xread(client: Pipeline, { block, count, streams }: RedisStream<KindaAny>): void {
   block = block === Infinity ? 0 : block
   const args = ['COUNT', count, 'STREAMS', ...streams.keys(), ...streams.values()]
   if (typeof block === 'number' && !Number.isNaN(block)) {
@@ -33,7 +36,7 @@ function xread(client: Pipeline, { block, count, streams }: RedisStream<any>): v
 }
 function xreadgroup(
   client: Pipeline,
-  { block, count, group, consumer, noack, streams }: RedisStream<any>
+  { block, count, group, consumer, noack, streams }: RedisStream<KindaAny>
 ): void {
   block = block === Infinity ? 0 : block
   const args = ['COUNT', count.toString()]
@@ -42,5 +45,6 @@ function xreadgroup(
     args.push('BLOCK', block.toString())
   }
   args.push('STREAMS', ...streams.keys(), ...streams.values())
+  //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   client.xreadgroup('GROUP', group!, consumer!, ...args)
 }

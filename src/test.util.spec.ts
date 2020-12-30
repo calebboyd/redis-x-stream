@@ -8,7 +8,11 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
   },
   rand = (): string => Math.random().toString(36).slice(6)
 
-function hydrateForTest(writer: RedisClient, stream: string, ...values: string[][]): Promise<any> {
+function hydrateForTest(
+  writer: RedisClient,
+  stream: string,
+  ...values: string[][]
+): Promise<unknown> {
   const pipeline = writer.pipeline()
   for (const [key, value] of values) {
     pipeline.xadd(stream, '*', key, value)

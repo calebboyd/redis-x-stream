@@ -2,10 +2,12 @@ import Redis from 'ioredis'
 import RedisStream from './stream'
 import { rand } from './test.util.spec'
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+type JustForTests = any
 describe('RedisStream xread', () => {
   it('should accept a mode', async () => {
     const streams = ['my-stream'],
-      bad = () => new RedisStream({ mode: 'wat' as any, streams }),
+      bad = () => new RedisStream({ mode: 'wat' as JustForTests, streams }),
       entry = new RedisStream({ mode: 'entry', streams }),
       batch = new RedisStream({ mode: 'batch', streams }),
       stream = new RedisStream({ mode: 'stream', streams })
@@ -55,7 +57,7 @@ describe('RedisStream xread', () => {
       str = new RedisStream(stream1, stream2),
       arr = new RedisStream({ streams: [stream1, stream2] }),
       rec = new RedisStream({ streams: { [stream1]: '0', [stream2]: '0' } }),
-      serializeMap = (map: Map<any, any>) => JSON.stringify([...map.entries()].sort())
+      serializeMap = (map: Map<string, string>) => JSON.stringify([...map.entries()].sort())
 
     expect(arr.streams.size).toEqual(str.streams.size)
     expect(rec.streams.size).toEqual(str.streams.size)
@@ -82,8 +84,8 @@ describe('RedisStream xread', () => {
     const stream = new RedisStream({
       streams: [rand()],
       block: 1000,
-      noack: (true + '') as any,
-      deleteOnAck: (true + '') as any,
+      noack: (true + '') as JustForTests,
+      deleteOnAck: (true + '') as JustForTests,
     })
     expect(stream.noack).toEqual(true)
     expect(stream.block).toEqual(1000)

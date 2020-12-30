@@ -4,7 +4,7 @@ import { StreamEntry, XEntryResult, XStreamResult } from './types.js'
 
 export function xReadIterable(
   this: RedisStream<'batch'>
-): AsyncIterator<XStreamResult[], any, undefined> {
+): AsyncIterator<XStreamResult[], void, undefined> {
   let first = this.group ? true : false
   return {
     return: () => this.return(),
@@ -31,7 +31,7 @@ export function xReadIterable(
 
 export function xReadIterableStream(
   this: RedisStream<'stream'>
-): AsyncIterator<XStreamResult, any, undefined> {
+): AsyncIterator<XStreamResult, void, undefined> {
   let streamItr: Iterator<XStreamResult> | null | undefined,
     first = this.group ? true : false
   return {
