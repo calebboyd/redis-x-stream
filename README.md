@@ -20,6 +20,7 @@ Work in progress 🚧👷‍♂️🔨
 ## TODO
 - [ ] xreadgroup stream
 - [ ] xreadgroup batch
+- [ ] documentation
 
 ## Maybe TODO
 - [ ] eager load?
