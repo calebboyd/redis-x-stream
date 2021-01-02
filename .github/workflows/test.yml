@@ -47,5 +47,4 @@ jobs:
         run: npm ci
       - name: Test
         run: npm run test -- --reporters=jest-github-actions-reporter
-          
-          
+

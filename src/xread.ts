@@ -5,17 +5,17 @@ import { StreamEntry, XEntryResult, XStreamResult } from './types.js'
 export function xReadIterable(
   this: RedisStream<'batch'>
 ): AsyncIterator<XStreamResult[], void, undefined> {
-  let first = this.group ? true : false
   return {
     return: () => this.return(),
     next: async () => {
       while (true) {
         if (this.done) return this.return()
-        const streams = await readAckDelete(this)
-        if (!streams && !first) return this.return()
-        if (first) {
-          this.streams.forEach((x) => this.streams.set(x, '>'))
-          first = false
+        const streamItr = await readAckDelete(this),
+          streams = streamItr ? [...streamItr] : null
+        if (!streams && !this.first) return this.return()
+        if (this.first) {
+          this.streams.forEach((v, k) => this.streams.set(k, '>'))
+          this.first = false
         }
         if (!streams) continue
         if (!this.group) {
@@ -32,18 +32,17 @@ export function xReadIterable(
 export function xReadIterableStream(
   this: RedisStream<'stream'>
 ): AsyncIterator<XStreamResult, void, undefined> {
-  let streamItr: Iterator<XStreamResult> | null | undefined,
-    first = this.group ? true : false
+  let streamItr: Iterator<XStreamResult> | null | undefined
   return {
     return: () => this.return(),
     next: async () => {
       while (true) {
         if (this.done) return this.return()
-        streamItr = streamItr || (await readAckDelete(this))?.[Symbol.iterator]?.()
-        if (!streamItr && !first) return this.return()
-        if (first) {
-          this.streams.forEach((x) => this.streams.set(x, '>'))
-          first = false
+        streamItr = streamItr || (await readAckDelete(this))
+        if (!streamItr && !this.first) return this.return()
+        if (this.first) {
+          this.streams.forEach((v, k) => this.streams.set(k, '>'))
+          this.first = false
         }
         if (!streamItr) continue
         const result = streamItr?.next()
@@ -61,14 +60,23 @@ export function xReadIterableStream(
 export function xReadIterableEntries(this: RedisStream<'entry'>): AsyncIterator<XEntryResult> {
   let streamItr: Iterator<XStreamResult> | null | undefined,
     entryItr: Iterator<StreamEntry> | null,
+    prev: StreamEntry | void,
     streamName = ''
   return {
     return: () => this.return(),
     next: async () => {
       while (true) {
         if (this.done) return this.return()
-        streamItr = streamItr || (await readAckDelete(this))?.[Symbol.iterator]()
-        if (!streamItr) return this.return()
+        if (prev && this.ackOnIterate) {
+          prev = this.ack(streamName, prev[0])
+        }
+        streamItr = streamItr || (await readAckDelete(this))
+        if (!streamItr && !this.first) return this.return()
+        if (this.first) {
+          this.streams.forEach((v, k) => this.streams.set(k, '>'))
+          this.first = false
+        }
+        if (!streamItr) continue
         if (!entryItr) {
           const nextStream = streamItr.next()
           if (!nextStream.done) {
@@ -80,7 +88,10 @@ export function xReadIterableEntries(this: RedisStream<'entry'>): AsyncIterator<
         const result = entryItr.next()
         if (result.done) entryItr = null
         else {
+          //for xreadgroup we can track the dispensed id anyway
+          //instead of using the '>' cursor
           this.streams.set(streamName, result.value[0])
+          if (this.ackOnIterate) prev = result.value
           return { done: this.done, value: [streamName, result.value] }
         }
       }

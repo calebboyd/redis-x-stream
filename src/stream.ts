@@ -10,8 +10,6 @@ import {
 } from './types.js'
 import { xReadIterableStream, xReadIterableEntries, xReadIterable } from './xread.js'
 
-type StreamKeys = [string, string[]][]
-
 //https://github.com/Microsoft/TypeScript/issues/13995
 type NotNarrowable = any //eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -34,12 +32,27 @@ export class RedisStream<T extends Mode = 'entry'> {
   public block?: number
 
   //behavior
-  public ackOnIterate = true
+  public ackOnIterate = false
   public deleteOnAck = false
 
   //state
+  /**
+   * Acks waiting to be sent on either:
+   * - timeout
+   * - async iteration
+   */
   public pendingAcks = new Map<string, string[]>()
+  /**
+   * Is the async iterable finished
+   */
   public done = false
+  /**
+   * Is it the first iteration?
+   */
+  public first = false
+  /**
+   * Did the RedisStream create the redis connection?
+   */
   private createdConnection = true
 
   constructor(options: RedisStreamOptions<T> | string, ...streams: string[]) {
@@ -65,8 +78,11 @@ export class RedisStream<T extends Mode = 'entry'> {
     else this.client = new Redis()
 
     if (options.consumer || options.group) {
-      if (!options.group) this.group = '_x_iter_g_' + options.consumer
-      if (!options.consumer) this.consumer = '_x_iter_c_' + options.group
+      if (!options.group) this.group = '_xs_g_' + options.consumer
+      if (!options.consumer) this.consumer = '_xs_c_' + options.group
+      this.group = this.group ?? options.group
+      this.consumer = this.consumer ?? options.consumer
+      this.first = true
     }
 
     if (Array.isArray(options.streams))
@@ -89,6 +105,10 @@ export class RedisStream<T extends Mode = 'entry'> {
 
     if (options.deleteOnAck) {
       this.deleteOnAck = true
+    }
+
+    if (options.ackOnIterate) {
+      this.ackOnIterate = true
     }
   }
 
@@ -117,15 +137,13 @@ export class RedisStream<T extends Mode = 'entry'> {
     }
   }
 
-  public ack({ streams }: { streams: StreamKeys }): void {
+  public ack(stream: string, ...ids: string[]): void {
     if (!this.group) {
       throw new Error('Cannot ack entries read outside of a consumer group')
     }
-    for (const [stream, ids] of streams) {
-      const acks = this.pendingAcks.get(stream) || []
-      acks.push(...ids)
-      this.pendingAcks.set(stream, acks)
-    }
+    const acks = this.pendingAcks.get(stream) || []
+    acks.push(...ids)
+    this.pendingAcks.set(stream, acks)
   }
 
   protected async return(): Promise<IteratorReturnResult<void>> {

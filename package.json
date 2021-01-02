@@ -29,6 +29,7 @@
     "commitlint": "commitlint -f $(git rev-list --tags --max-count=1) -t $(git log --pretty=%H | head -1)",
     "lint": "eslint \"src/**/*\" --fix --ext \"*.ts\"",
     "prepublishOnly": "npm run build",
+    "coverage": "npm run test -- --collectCoverage",
     "test": "jest --passWithNoTests",
     "watch:test": "jest --watchAll",
     "watch:typescript": "tsc -w"

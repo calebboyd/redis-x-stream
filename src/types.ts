@@ -56,33 +56,16 @@ export interface RedisStreamOptions<T extends Mode> {
    */
   redis?: Redis | string | RedisOptions
   /**
-   * The longest amount of time in milliseconds the dispenser should block
-   * while waiting for new entries on any stream
-   */
-  block?: number
-  /**
    * The maximum number of entries to retrieve in a single read operation
    * "highWaterMark"
    * @default 100
    */
   count?: number
   /**
-   * NOACK causes redis to bypass the Pending Entries List
-   * @default false
+   * The longest amount of time in milliseconds the dispenser should block
+   * while waiting for new entries on any stream
    */
-  noack?: true
-  /**
-   * The number of entries to batch ack and remove from the PEL
-   * Default behavior or a dispenser is "at least once delivery"
-   *
-   * The closer the ackBatchSize is to 1 the closer you are to achieving "exactly once delivery"
-   * At the cost of more redis calls.
-   * The higher ackBatchSize is - a dispenser failure/recovery could deliver messages more than once from the PEL
-   *
-   * An ackBatchSize of 0 utilizes the NOACK flag -- items are not added to a PEL and ackIntervalMs is ignored.
-   * @default 100
-   */
-  pendingAckThreshold?: number
+  block?: number
   /**
    * By default, Iterables utilizing consumer groups will
    * automatically queue acknowledgments for previously iterated entries.
@@ -95,6 +78,21 @@ export interface RedisStreamOptions<T extends Mode> {
    * @default false
    */
   deleteOnAck?: boolean
+  /**
+   * NOACK causes redis to bypass the Pending Entries List
+   * @default false
+   */
+  noack?: true
+  /**
+   * The number of entries to batch ack and remove from the PEL
+   * Default behavior or a dispenser is "at least once delivery"
+   *
+   * The closer the flushPendingAckCount is to 1 the closer you are to achieving "exactly once delivery"
+   * At the cost of more frequent redis calls.
+   * The higher flushPendingAckCount is - a dispenser failure/recovery could deliver messages more than once from the PEL
+   * @default 100
+   */
+  flushPendingAckCount?: number
   /**
    * If iteration is slow, set this to the maximum amount of time that will elapse before pending acks will be flushed.
    * This counter is reset after each ack
