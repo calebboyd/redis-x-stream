@@ -1,4 +1,4 @@
-import { RedisClient } from './types.js'
+import { RedisClient, StreamEntry, XEntryResult } from './types.js'
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms)),
   times = <T>(count: number, fn: () => T): Array<T> => Array.from(Array(count), fn) as T[],
@@ -7,8 +7,8 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
     return new Promise((resolve) => client.once('end', resolve))
   },
   rand = (): string => Math.random().toString(36).slice(6),
-  drain = async (iterable: AsyncIterable<any>) => {
-    const results = new Map<string, any[]>()
+  drain = async (iterable: AsyncIterable<XEntryResult>): Promise<Map<string, StreamEntry[]>> => {
+    const results = new Map<string, StreamEntry[]>()
     for await (const [streamName, entry] of iterable) {
       const entries = results.get(streamName) || []
       entries.push(entry)

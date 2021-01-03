@@ -10,18 +10,6 @@
     }
   },
   "type": "module",
-  "jest": {
-    "resolver": "jest-ts-webcompat-resolver",
-    "preset": "ts-jest",
-    "testPathIgnorePatterns": [
-      ".*\\.js",
-      ".*\\.util\\.spec"
-    ]
-  },
-  "files": [
-    "lib",
-    "!**/*.spec.js"
-  ],
   "scripts": {
     "build": "rm -rf lib && npm run lint && npm run compile",
     "compile": "tsc && npm run compile:commonjs",
@@ -30,12 +18,23 @@
     "lint": "eslint \"src/**/*\" --fix --ext \"*.ts\"",
     "prepublishOnly": "npm run build",
     "coverage": "npm run test -- --collectCoverage",
-    "test": "jest --passWithNoTests",
+    "test": "npm run commitlint && jest",
     "watch:test": "jest --watchAll",
     "watch:typescript": "tsc -w"
   },
+  "files": [
+    "lib",
+    "!**/*.spec.js"
+  ],
+  "jest": {
+    "resolver": "jest-ts-webcompat-resolver",
+    "preset": "ts-jest",
+    "testPathIgnorePatterns": [
+      ".*\\.js",
+      ".*\\.util\\.spec"
+    ]
+  },
   "dependencies": {
-    "@calebboyd/async": "^2.0.1",
     "ioredis": "^4.19.4"
   },
   "peerDependencies": {

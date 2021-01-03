@@ -5,7 +5,7 @@ import { XBatchResult, XStreamResult } from './types.js'
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type KindaAny = any
 
-function isNumber(num: any): num is number {
+function isNumber(num: number | string | undefined): num is number {
   return typeof num === 'number' && !Number.isNaN(num)
 }
 
