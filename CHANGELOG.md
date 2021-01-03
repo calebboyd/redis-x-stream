@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0](https://github.com/calebboyd/redis-x-stream/compare/v1.0.0...v1.1.0) (2021-01-03)
+
+
+### Features
+
+* minor bump ([0a2a328](https://github.com/calebboyd/redis-x-stream/commit/0a2a32887fe9e4f8240acc4fe7a06bfdb8b2f4be))
+
 # 1.0.0 (2021-01-03)
 
 
@@ -21,4 +28,3 @@ All notable changes to this project will be documented in this file. See
 
 * pipelining redis commands ([c7486a5](https://github.com/calebboyd/redis-x-stream/commit/c7486a510e07b6606388c25fd6ec549d18c6e179))
 * xreadgroup entries ([383d836](https://github.com/calebboyd/redis-x-stream/commit/383d8363cca19f42e96364f60142b1cce57f405b))
-
