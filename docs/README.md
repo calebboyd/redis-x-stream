@@ -1,3 +1,5 @@
+redis-x-stream / [Exports](modules.md)
+
 # redis-x-stream
 
 An [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/asyncIterator) that emits redis stream entries.
@@ -18,10 +20,10 @@ for await (const [stream, entry] of new RedisStream('myStream')) {
 See [API Docs](docs/classes/redisstream.md#constructor)
 
 ## TODO
-- [x] ~xread batch~
-- [x] ~xread stream~
-- [x] ~xread entry~
-- [x] ~xreadgroup entry~
+- [x] xread batch
+- [x] xread stream
+- [x] xread entry
+- [x] xreadgroup entry
 - [ ] xreadgroup stream
 - [ ] xreadgroup batch
 - [ ] documentation

@@ -13,6 +13,8 @@ import { xReadIterableStream, xReadIterableEntries, xReadIterable } from './xrea
 //https://github.com/Microsoft/TypeScript/issues/13995
 type NotNarrowable = any //eslint-disable-line @typescript-eslint/no-explicit-any
 
+export { RedisStreamOptions, Mode }
+
 export class RedisStream<T extends Mode = 'entry'> {
   //static factoryFor() { //create factory that extends options }
   /**
@@ -43,15 +45,15 @@ export class RedisStream<T extends Mode = 'entry'> {
    */
   public pendingAcks = new Map<string, string[]>()
   /**
-   * Is the async iterable finished
+   * Flag for iterable state
    */
   public done = false
   /**
-   * Is it the first iteration?
+   * Flag for first iteration
    */
   public first = false
   /**
-   * Did the RedisStream create the redis connection?
+   * Did we create the redis connection?
    */
   private createdConnection = true
 

@@ -17,6 +17,15 @@ export class RedisStreamAbortedError extends Error {
   message = 'RedisStream Aborted with unprocessed results'
 }
 
+/**
+ * `'entry'` mode is default and will iterate over each stream entry in each stream in the result set
+ *
+ * `'stream'` mode will iterate over each XREAD[GROUP] stream result
+ *
+ * `'batch'` mode will iterate over each XREAD[GROUP] call result
+ *
+ * @default `'entry'`
+ */
 export type Mode = 'entry' | 'stream' | 'batch'
 
 export const modes = {
@@ -31,9 +40,13 @@ if (typeof process !== 'undefined' && process.env) {
 }
 export interface RedisStreamOptions<T extends Mode> {
   /**
-   * 'entry' mode is default and will iterate over each stream entry in each stream in the result set
-   * 'stream' mode will iterate over each XREAD[GROUP] stream result
-   * 'batch' mode will iterate over each XREAD[GROUP] call result
+   * `'entry'` mode is default and will iterate over each stream entry in each stream in the result set
+   *
+   * `'stream'` mode will iterate over each XREAD[GROUP] stream result
+   *
+   * `'batch'` mode will iterate over each XREAD[GROUP] call result
+   *
+   * @default `'entry'`
    */
   mode?: T
   /**
@@ -57,45 +70,52 @@ export interface RedisStreamOptions<T extends Mode> {
   redis?: Redis | string | RedisOptions
   /**
    * The maximum number of entries to retrieve in a single read operation
-   * "highWaterMark"
+   * eg. the "highWaterMark"
    * @default 100
    */
   count?: number
   /**
    * The longest amount of time in milliseconds the dispenser should block
-   * while waiting for new entries on any stream
+   * while waiting for new entries on any stream, passed to xread or xreadgroup
    */
   block?: number
   /**
-   * By default, Iterables utilizing consumer groups will
+   * If set to `true` Iterables utilizing consumer groups will
    * automatically queue acknowledgments for previously iterated entries.
-   * @default true
+   * @default undefined
    */
-  ackOnIterate?: boolean
+  ackOnIterate?: true
   /**
-   * By default, Iterables utilizing consumer groups will
-   * automatically queue acknowledgments for previously iterated entries.
-   * @default false
+   * If set to `true` Iterables utilizing consumer groups will
+   * automatically delete entries after acknowledgment
+   * @default undefined
    */
-  deleteOnAck?: boolean
+  deleteOnAck?: true
   /**
-   * NOACK causes redis to bypass the Pending Entries List
-   * @default false
+   * Pass the NOACK flag to calls to xreadgroup bypassing the Redis PEL
+   * @default `false`
    */
   noack?: true
   /**
-   * The number of entries to batch ack and remove from the PEL
-   * Default behavior or a dispenser is "at least once delivery"
+   * The number of entries to buffer for acknowledgment at the same time.
+   * Removes items from the Redis PEL
    *
-   * The closer the flushPendingAckCount is to 1 the closer you are to achieving "exactly once delivery"
-   * At the cost of more frequent redis calls.
-   * The higher flushPendingAckCount is - a dispenser failure/recovery could deliver messages more than once from the PEL
+   * The closer the flushPendingAckCount is to 1 the closer to achieving "exactly once delivery"
+   * At the cost of more frequent redis calls. Default behavior for redis streams can be considered "at least once"
+   *
+   * The higher flushPendingAckCount is - a stream failure/recovery could deliver messages more than once from the PEL
+   *
+   * Defaults to the same value as `.count`
+   *
+   * TODO: not yet implemented
    * @default 100
    */
   flushPendingAckCount?: number
   /**
-   * If iteration is slow, set this to the maximum amount of time that will elapse before pending acks will be flushed.
-   * This counter is reset after each ack
+   * If iteration is slow, set this to the maximum amount of time that should elapse before pending acks will be flushed
+   * This counter is reset after each iteration or ack
+   *
+   * TODO: not yet implemented
    */
   flushPendingAckInterval?: number
 }
