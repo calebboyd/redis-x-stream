@@ -18,6 +18,7 @@ Name | Type |
 
 * [ackOnIterate](redisstreamoptions.md#ackoniterate)
 * [block](redisstreamoptions.md#block)
+* [buffers](redisstreamoptions.md#buffers)
 * [consumer](redisstreamoptions.md#consumer)
 * [count](redisstreamoptions.md#count)
 * [deleteOnAck](redisstreamoptions.md#deleteonack)
@@ -40,7 +41,7 @@ automatically queue acknowledgments for previously iterated entries.
 
 **`default`** undefined
 
-Defined in: [types.ts:87](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L87)
+Defined in: [types.ts:98](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L98)
 
 ___
 
@@ -51,7 +52,18 @@ ___
 The longest amount of time in milliseconds the dispenser should block
 while waiting for new entries on any stream, passed to xread or xreadgroup
 
-Defined in: [types.ts:81](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L81)
+Defined in: [types.ts:92](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L92)
+
+___
+
+### buffers
+
+• `Optional` **buffers**: *undefined* \| *true*
+
+Return buffers with each xread operation
+This applies to entry id and kv results
+
+Defined in: [types.ts:81](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L81)
 
 ___
 
@@ -62,7 +74,7 @@ ___
 The consumer.
 Note: if only consumer is provided, a group is created automatically
 
-Defined in: [types.ts:65](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L65)
+Defined in: [types.ts:71](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L71)
 
 ___
 
@@ -75,7 +87,7 @@ eg. the "highWaterMark"
 
 **`default`** 100
 
-Defined in: [types.ts:76](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L76)
+Defined in: [types.ts:87](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L87)
 
 ___
 
@@ -88,7 +100,7 @@ automatically delete entries after acknowledgment
 
 **`default`** undefined
 
-Defined in: [types.ts:93](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L93)
+Defined in: [types.ts:104](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L104)
 
 ___
 
@@ -110,7 +122,7 @@ TODO: not yet implemented
 
 **`default`** 100
 
-Defined in: [types.ts:113](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L113)
+Defined in: [types.ts:124](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L124)
 
 ___
 
@@ -123,7 +135,7 @@ This counter is reset after each iteration or ack
 
 TODO: not yet implemented
 
-Defined in: [types.ts:120](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L120)
+Defined in: [types.ts:131](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L131)
 
 ___
 
@@ -134,7 +146,7 @@ ___
 The consumer group.
 Note: if only a group is provided a consumer is created automatically
 
-Defined in: [types.ts:60](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L60)
+Defined in: [types.ts:66](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L66)
 
 ___
 
@@ -150,7 +162,7 @@ ___
 
 **`default`** `'entry'`
 
-Defined in: [types.ts:51](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L51)
+Defined in: [types.ts:57](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L57)
 
 ___
 
@@ -162,7 +174,7 @@ Pass the NOACK flag to calls to xreadgroup bypassing the Redis PEL
 
 **`default`** `false`
 
-Defined in: [types.ts:98](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L98)
+Defined in: [types.ts:109](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L109)
 
 ___
 
@@ -173,7 +185,7 @@ ___
 The IORedis client connection.
 NOTE: by default this connection becomes a "reader" when block > 0
 
-Defined in: [types.ts:70](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L70)
+Defined in: [types.ts:76](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L76)
 
 ___
 
@@ -183,4 +195,4 @@ ___
 
 Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
 
-Defined in: [types.ts:55](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L55)
+Defined in: [types.ts:61](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L61)

@@ -27,25 +27,6 @@ describe('redis-x-stream xread', () => {
     streams.clear()
     return quit(reader)
   })
-  it('should dispense in batch mode', async () => {
-    const streamName = key('my-stream')
-    await hydrateForTest(writer, streamName, ...testEntries)
-    const iterable = new RedisStream({
-      mode: 'batch',
-      streams: { [streamName]: '0' },
-    })
-    let asserted = false
-    for await (const results of iterable) {
-      for (const [str, entries] of results) {
-        asserted = true
-        expect(str).toEqual(streamName)
-        expect(entries[0][1]).toEqual(testEntries[0])
-        expect(entries[1][1]).toEqual(testEntries[1])
-        expect(entries[2][1]).toEqual(testEntries[2])
-      }
-    }
-    expect(asserted).toBeTruthy()
-  })
   it('should dispense in entry mode (default)', async () => {
     const streamName = key('my-straam'),
       iterable = new RedisStream(streamName)

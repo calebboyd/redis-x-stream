@@ -40,4 +40,4 @@ Renames and exports: [RedisStream](classes/redisstream.md)
 
 **`default`** `'entry'`
 
-Defined in: [types.ts:29](https://github.com/calebboyd/pez/blob/557aceb/src/types.ts#L29)
+Defined in: [types.ts:35](https://github.com/calebboyd/pez/blob/91a6433/src/types.ts#L35)

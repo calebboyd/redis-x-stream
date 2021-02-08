@@ -1,4 +1,5 @@
 import Redis from 'ioredis'
+import { readAckDelete } from './redis.js'
 import {
   RedisStreamOptions,
   RedisClient,
@@ -8,7 +9,6 @@ import {
   modes,
   env,
 } from './types.js'
-import { xReadIterableStream, xReadIterableEntries, xReadIterable } from './xread.js'
 
 //https://github.com/Microsoft/TypeScript/issues/13995
 type NotNarrowable = any //eslint-disable-line @typescript-eslint/no-explicit-any
@@ -32,6 +32,7 @@ export class RedisStream<T extends Mode = 'entry'> {
   public count = 100
   public noack = false
   public block?: number
+  public buffers?: boolean = false
 
   //behavior
   public ackOnIterate = false
@@ -48,10 +49,15 @@ export class RedisStream<T extends Mode = 'entry'> {
    * Flag for iterable state
    */
   public done = false
-  /**
-   * Flag for first iteration
-   */
   public first = false
+
+  private itr = {
+    name: '',
+    prev: undefined as any,
+    entry: undefined as any,
+    stream: undefined as any,
+  }
+
   /**
    * Did we create the redis connection?
    */
@@ -97,6 +103,10 @@ export class RedisStream<T extends Mode = 'entry'> {
       this.count = options.count
     }
 
+    if (options.buffers) {
+      this.buffers = true
+    }
+
     if (options.noack) {
       this.noack = true
     }
@@ -114,17 +124,47 @@ export class RedisStream<T extends Mode = 'entry'> {
     }
   }
 
-  [Symbol.asyncIterator](): AsyncIterator<
+  async *[Symbol.asyncIterator](): AsyncIterator<
     T extends 'entry' ? XEntryResult : T extends 'batch' ? XStreamResult[] : XStreamResult
   > {
-    //Typing works for the consumer but requires casting here...
-    switch (this.mode) {
-      case 'batch':
-        return xReadIterable.call(this as RedisStream<'batch'>) as NotNarrowable
-      case 'entry':
-        return xReadIterableEntries.call(this as RedisStream<'entry'>) as NotNarrowable
-      case 'stream':
-        return xReadIterableStream.call(this as RedisStream<'stream'>) as NotNarrowable
+    const itr = this.itr
+    while (true) {
+      if (this.done) return this.return()
+      this.ackPrev()
+      itr.stream = itr.stream || (await readAckDelete(this))
+      if (!itr.stream && !this.first) return this.return()
+      this.moveCursors()
+      if (!itr.stream) continue
+      if (!itr.entry) {
+        const next = itr.stream.next()
+        if (!next.done) {
+          itr.name = next.value[0].toString()
+          itr.entry = next.value[1][Symbol.iterator]()
+        } else {
+          itr.stream = null
+        }
+        continue
+      }
+      const result = itr.entry.next()
+      if (result.done) itr.entry = null
+      else {
+        this.streams.set(itr.name, this.group ? '>' : result.value[0].toString())
+        if (this.ackOnIterate) itr.prev = result.value
+        yield [itr.name, result.value] as any
+      }
+    }
+  }
+
+  private moveCursors() {
+    if (this.first) {
+      this.streams.forEach((v, k) => this.streams.set(k, '>'))
+      this.first = false
+    }
+  }
+
+  private ackPrev() {
+    if (this.ackOnIterate && this.itr.prev) {
+      this.itr.prev = this.ack(this.itr.name, this.itr.prev[0].toString())
     }
   }
 
@@ -148,9 +188,8 @@ export class RedisStream<T extends Mode = 'entry'> {
     this.pendingAcks.set(stream, acks)
   }
 
-  protected async return(): Promise<IteratorReturnResult<void>> {
+  protected async return(): Promise<void> {
     await this.quit()
-    return { done: true, value: void 0 }
   }
 }
 

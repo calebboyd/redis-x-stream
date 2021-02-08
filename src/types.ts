@@ -11,6 +11,12 @@ export type XEntryResult = [StreamKey, StreamEntry]
 export type XStreamResult = [StreamKey, StreamEntry[]]
 export type XBatchResult = XStreamResult[]
 
+//Buffers
+export type StreamEntryKeyValueBuffers = Buffer[]
+export type XEntryBufferResult = [StreamKey, StreamEntryKeyValueBuffers]
+export type XStreamResultBuffer = [StreamKey, StreamEntryKeyValueBuffers[]]
+export type XBatchResultBuffer = XStreamResult[]
+
 export { Redis as RedisClient }
 
 export class RedisStreamAbortedError extends Error {
@@ -68,6 +74,11 @@ export interface RedisStreamOptions<T extends Mode> {
    * NOTE: by default this connection becomes a "reader" when block > 0
    */
   redis?: Redis | string | RedisOptions
+  /**
+   * Return buffers with each xread operation
+   * This applies to entry id and kv results
+   */
+  buffers?: true
   /**
    * The maximum number of entries to retrieve in a single read operation
    * eg. the "highWaterMark"

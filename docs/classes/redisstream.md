@@ -22,10 +22,10 @@ Name | Type | Default |
 
 * [ackOnIterate](redisstream.md#ackoniterate)
 * [block](redisstream.md#block)
+* [buffers](redisstream.md#buffers)
 * [client](redisstream.md#client)
 * [consumer](redisstream.md#consumer)
 * [count](redisstream.md#count)
-* [createdConnection](redisstream.md#createdconnection)
 * [deleteOnAck](redisstream.md#deleteonack)
 * [done](redisstream.md#done)
 * [first](redisstream.md#first)
@@ -63,7 +63,7 @@ Name | Type |
 
 **Returns:** [*RedisStream*](redisstream.md)<T\>
 
-Defined in: [stream.ts:58](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L58)
+Defined in: [stream.ts:64](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L64)
 
 ## Properties
 
@@ -71,7 +71,7 @@ Defined in: [stream.ts:58](https://github.com/calebboyd/pez/blob/557aceb/src/str
 
 • **ackOnIterate**: *boolean*= false
 
-Defined in: [stream.ts:37](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L37)
+Defined in: [stream.ts:38](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L38)
 
 ___
 
@@ -79,7 +79,15 @@ ___
 
 • `Optional` **block**: *undefined* \| *number*
 
-Defined in: [stream.ts:34](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L34)
+Defined in: [stream.ts:34](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L34)
+
+___
+
+### buffers
+
+• `Optional` **buffers**: *undefined* \| *boolean*= false
+
+Defined in: [stream.ts:35](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L35)
 
 ___
 
@@ -87,7 +95,7 @@ ___
 
 • `Readonly` **client**: *Redis*
 
-Defined in: [stream.ts:26](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L26)
+Defined in: [stream.ts:26](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L26)
 
 ___
 
@@ -95,7 +103,7 @@ ___
 
 • `Optional` `Readonly` **consumer**: *undefined* \| *string*
 
-Defined in: [stream.ts:28](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L28)
+Defined in: [stream.ts:28](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L28)
 
 ___
 
@@ -103,17 +111,7 @@ ___
 
 • **count**: *number*= 100
 
-Defined in: [stream.ts:32](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L32)
-
-___
-
-### createdConnection
-
-• `Private` **createdConnection**: *boolean*= true
-
-Did we create the redis connection?
-
-Defined in: [stream.ts:58](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L58)
+Defined in: [stream.ts:32](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L32)
 
 ___
 
@@ -121,7 +119,7 @@ ___
 
 • **deleteOnAck**: *boolean*= false
 
-Defined in: [stream.ts:38](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L38)
+Defined in: [stream.ts:39](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L39)
 
 ___
 
@@ -131,7 +129,7 @@ ___
 
 Flag for iterable state
 
-Defined in: [stream.ts:50](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L50)
+Defined in: [stream.ts:51](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L51)
 
 ___
 
@@ -139,9 +137,7 @@ ___
 
 • **first**: *boolean*= false
 
-Flag for first iteration
-
-Defined in: [stream.ts:54](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L54)
+Defined in: [stream.ts:52](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L52)
 
 ___
 
@@ -149,7 +145,7 @@ ___
 
 • `Optional` `Readonly` **group**: *undefined* \| *string*
 
-Defined in: [stream.ts:27](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L27)
+Defined in: [stream.ts:27](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L27)
 
 ___
 
@@ -161,7 +157,7 @@ ___
 'stream' mode will dispense each stream containing entries
 'batch' mode will dispense all streams with all entries
 
-Defined in: [stream.ts:25](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L25)
+Defined in: [stream.ts:25](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L25)
 
 ___
 
@@ -169,7 +165,7 @@ ___
 
 • **noack**: *boolean*= false
 
-Defined in: [stream.ts:33](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L33)
+Defined in: [stream.ts:33](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L33)
 
 ___
 
@@ -181,7 +177,7 @@ Acks waiting to be sent on either:
 - timeout
 - async iteration
 
-Defined in: [stream.ts:46](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L46)
+Defined in: [stream.ts:47](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L47)
 
 ___
 
@@ -189,7 +185,7 @@ ___
 
 • **streams**: *Map*<*string*, *string*\>
 
-Defined in: [stream.ts:31](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L31)
+Defined in: [stream.ts:31](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L31)
 
 ## Methods
 
@@ -199,7 +195,7 @@ Defined in: [stream.ts:31](https://github.com/calebboyd/pez/blob/557aceb/src/str
 
 **Returns:** *AsyncIterator*<T *extends* *entry* ? XEntryResult : T *extends* *batch* ? XStreamResult[] : XStreamResult, *any*, *undefined*\>
 
-Defined in: [stream.ts:117](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L117)
+Defined in: [stream.ts:127](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L127)
 
 ___
 
@@ -216,7 +212,7 @@ Name | Type |
 
 **Returns:** *void*
 
-Defined in: [stream.ts:142](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L142)
+Defined in: [stream.ts:182](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L182)
 
 ___
 
@@ -226,14 +222,14 @@ ___
 
 **Returns:** *Promise*<*void*\>
 
-Defined in: [stream.ts:131](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L131)
+Defined in: [stream.ts:171](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L171)
 
 ___
 
 ### return
 
-▸ `Protected`**return**(): *Promise*<*IteratorReturnResult*<*void*\>\>
+▸ `Protected`**return**(): *Promise*<*void*\>
 
-**Returns:** *Promise*<*IteratorReturnResult*<*void*\>\>
+**Returns:** *Promise*<*void*\>
 
-Defined in: [stream.ts:151](https://github.com/calebboyd/pez/blob/557aceb/src/stream.ts#L151)
+Defined in: [stream.ts:191](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L191)
