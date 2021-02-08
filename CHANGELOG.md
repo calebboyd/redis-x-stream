@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1](https://github.com/calebboyd/redis-x-stream/compare/v1.1.0...v1.1.1) (2021-02-08)
+
+
+### Bug Fixes
+
+* cursor + block for xreadgroup ([28f91b8](https://github.com/calebboyd/redis-x-stream/commit/28f91b88329ab953e83336e4dd8f33f53452bf84))
+
 # [1.1.0](https://github.com/calebboyd/redis-x-stream/compare/v1.0.0...v1.1.0) (2021-01-03)
 
 
