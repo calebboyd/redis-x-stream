@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import RedisStream from './stream'
+import redisStream from './stream'
 import { rand } from './test.util.spec'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -7,22 +7,22 @@ type JustForTests = any
 describe('RedisStream xread', () => {
   it('should accept a mode', async () => {
     const streams = ['my-stream'],
-      bad = () => new RedisStream({ mode: 'wat' as JustForTests, streams }),
-      entry = new RedisStream({ mode: 'entry', streams }),
-      batch = new RedisStream({ mode: 'batch', streams }),
-      stream = new RedisStream({ mode: 'stream', streams })
+      bad = () => redisStream({ mode: 'wat' as JustForTests, streams }),
+      entry = redisStream({ mode: 'entry', streams }),
+      batch = redisStream({ mode: 'batch', streams }),
+      stream = redisStream({ mode: 'stream', streams })
 
     expect(bad).toThrow(`"wat" is not a valid Mode - use one of:  'entry' | 'batch' | 'stream'`)
     await Promise.all([entry.quit(), batch.quit(), stream.quit()])
   })
 
   it('should not quit a client it did not create', async () => {
-    const created = new RedisStream('m')
+    const created = redisStream('m')
     expect(created.client.status).toEqual('connecting')
     await created.quit()
     expect(created.client.status).toEqual('end')
     const redis = new Redis()
-    const passed = new RedisStream({ streams: ['m'], redis })
+    const passed = redisStream({ streams: ['m'], redis })
     expect(passed.client.status).toEqual('connecting')
     await passed.quit()
     expect(passed.client.status).toEqual('connecting')
@@ -32,13 +32,13 @@ describe('RedisStream xread', () => {
   })
 
   it('should accept redis options (string or options object)', () => {
-    const str = new RedisStream({ redis: 'redis://localhost:6739', streams: ['my-stream'] }),
-      obj = new RedisStream({ redis: { host: 'localhost' }, streams: ['m'] })
+    const str = redisStream({ redis: 'redis://localhost:6739', streams: ['my-stream'] }),
+      obj = redisStream({ redis: { host: 'localhost' }, streams: ['m'] })
     return Promise.all([str.quit(), obj.quit()])
   })
 
   it('should manage initial and finished state', async () => {
-    const stream = new RedisStream('my-stream' + rand())
+    const stream = redisStream('my-stream' + rand())
     expect(stream.count).toEqual(100)
     expect(stream.noack).toEqual(false)
     expect(stream.block).toBeUndefined()
@@ -54,9 +54,9 @@ describe('RedisStream xread', () => {
   it('should accept string or array or record describing streams to consume', () => {
     const stream1 = 'str' + rand(),
       stream2 = 'str' + rand(),
-      str = new RedisStream(stream1, stream2),
-      arr = new RedisStream({ streams: [stream1, stream2] }),
-      rec = new RedisStream({ streams: { [stream1]: '0', [stream2]: '0' } }),
+      str = redisStream(stream1, stream2),
+      arr = redisStream({ streams: [stream1, stream2] }),
+      rec = redisStream({ streams: { [stream1]: '0', [stream2]: '0' } }),
       serializeMap = (map: Map<string, string>) => JSON.stringify([...map.entries()].sort())
 
     expect(arr.streams.size).toEqual(str.streams.size)
@@ -68,20 +68,20 @@ describe('RedisStream xread', () => {
 
   it('should start at zero by default for xread ', () => {
     const myStream = 'key' + rand()
-    const stream = new RedisStream(myStream)
+    const stream = redisStream(myStream)
     expect(stream.streams.get(myStream)).toEqual('0')
     return stream.quit()
   })
 
   it('should optionally start at the passed id', () => {
     const myStream = 'key' + rand()
-    const stream = new RedisStream({ streams: { [myStream]: '$' } })
+    const stream = redisStream({ streams: { [myStream]: '$' } })
     expect(stream.streams.get(myStream)).toEqual('$')
     return stream.quit()
   })
 
   it('should set noack, block, deleteOnAck if passed (truthy)', () => {
-    const stream = new RedisStream({
+    const stream = redisStream({
       streams: [rand()],
       block: 1000,
       noack: (true + '') as JustForTests,

@@ -193,4 +193,9 @@ export class RedisStream<T extends Mode = 'entry'> {
   }
 }
 
-export default RedisStream
+export default function createRedisStream<T extends Mode = 'entry'>(
+  options: RedisStreamOptions<T> | string,
+  ...streams: string[]
+): RedisStream<T> {
+  return new RedisStream(options, ...streams)
+}

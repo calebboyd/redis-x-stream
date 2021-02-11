@@ -1,4 +1,4 @@
-import RedisStream from './stream.js'
+import redisStream from './stream.js'
 import { drain, hydrateForTest, quit, rand, redisIdRegex, testEntries } from './test.util.spec.js'
 import { RedisClient } from './types.js'
 import Redis from 'ioredis'
@@ -27,11 +27,11 @@ describe('redis-x-stream xreadgroup', () => {
   })
   it('should create a consumer or group if one is not provided', () => {
     const streamKey = key('my-stream'),
-      cstream = new RedisStream({
+      cstream = redisStream({
         streams: [streamKey],
         group: 'my-group',
       }),
-      gstream = new RedisStream({
+      gstream = redisStream({
         streams: [streamKey],
         consumer: 'my-consumer',
       })
@@ -44,7 +44,7 @@ describe('redis-x-stream xreadgroup', () => {
 
   it('should automatically create a group', async () => {
     const streamKey = key('my-stream'),
-      stream = new RedisStream({ group: 'my-group', streams: [streamKey] })
+      stream = redisStream({ group: 'my-group', streams: [streamKey] })
     await hydrateForTest(writer, streamKey)
     await drain(stream)
     return stream.quit()
@@ -56,7 +56,7 @@ describe('redis-x-stream xreadgroup', () => {
     let i = 2
     //The second iteration causes the PEL to be sent back (eg, the same entries)
     while (i--) {
-      const stream = new RedisStream({ group: 'my-group', streams: [streamKey] })
+      const stream = redisStream({ group: 'my-group', streams: [streamKey] })
       let idx = 0,
         asserted = false
       for await (const [name, entry] of stream) {
@@ -75,7 +75,7 @@ describe('redis-x-stream xreadgroup', () => {
     await hydrateForTest(writer, streamKey)
     let i = 2
     while (i--) {
-      const stream = new RedisStream({
+      const stream = redisStream({
         group: 'my-group',
         streams: [streamKey],
         ackOnIterate: true,
@@ -90,7 +90,7 @@ describe('redis-x-stream xreadgroup', () => {
       else expect(idx).toEqual(testEntries.length)
       await stream.quit()
     }
-    const newGroup = new RedisStream({
+    const newGroup = redisStream({
       group: 'my-group2',
       streams: [streamKey],
     })
@@ -102,7 +102,7 @@ describe('redis-x-stream xreadgroup', () => {
     await hydrateForTest(writer, streamKey)
     let i = 2
     while (i--) {
-      const stream = new RedisStream({
+      const stream = redisStream({
         group: 'my-group',
         streams: [streamKey],
         ackOnIterate: true,
@@ -118,7 +118,7 @@ describe('redis-x-stream xreadgroup', () => {
       else expect(idx).toEqual(testEntries.length)
       await stream.quit()
     }
-    const newGroup = new RedisStream({
+    const newGroup = redisStream({
       group: 'my-group2',
       streams: [streamKey],
     })
