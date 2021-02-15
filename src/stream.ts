@@ -32,7 +32,7 @@ export class RedisStream<T extends Mode = 'entry'> {
   public count = 100
   public noack = false
   public block?: number
-  public buffers?: boolean = false
+  public buffers = false
 
   //behavior
   public ackOnIterate = false

@@ -78,7 +78,7 @@ export interface RedisStreamOptions<T extends Mode> {
    * Return buffers with each xread operation
    * This applies to entry id and kv results
    */
-  buffers?: true
+  buffers?: boolean
   /**
    * The maximum number of entries to retrieve in a single read operation
    * eg. the "highWaterMark"
@@ -93,20 +93,20 @@ export interface RedisStreamOptions<T extends Mode> {
   /**
    * If set to `true` Iterables utilizing consumer groups will
    * automatically queue acknowledgments for previously iterated entries.
-   * @default undefined
+   * @default false
    */
-  ackOnIterate?: true
+  ackOnIterate?: boolean
   /**
    * If set to `true` Iterables utilizing consumer groups will
    * automatically delete entries after acknowledgment
-   * @default undefined
+   * @default false
    */
-  deleteOnAck?: true
+  deleteOnAck?: boolean
   /**
    * Pass the NOACK flag to calls to xreadgroup bypassing the Redis PEL
-   * @default `false`
+   * @default false
    */
-  noack?: true
+  noack?: boolean
   /**
    * The number of entries to buffer for acknowledgment at the same time.
    * Removes items from the Redis PEL
