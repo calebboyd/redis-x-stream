@@ -6,15 +6,18 @@ Requires Redis 5 or greater.
 ## Getting Started
 
 ```javascript
-import { RedisStream } from 'redis-x-stream'
+import streamEntries from 'redis-x-stream'
 
-for await (const [stream, [id, keyvals]] of new RedisStream('myStream')) {
+for await (const [stream, [id, keyvals]] of streamEntries('myStream')) {
   //process an entry
 }
 ```
 ## Usage
 
 See [API Docs](docs/classes/redisstream.md#constructor)
+
+
+
 ## Not yet implemented
 - batch mode
 - stream mode
