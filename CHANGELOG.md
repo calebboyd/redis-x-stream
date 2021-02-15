@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.1](https://github.com/calebboyd/redis-x-stream/compare/v1.2.0...v1.2.1) (2021-02-15)
+
+
+### Bug Fixes
+
+* more flexible option types ([b9f7e8e](https://github.com/calebboyd/redis-x-stream/commit/b9f7e8e30e3a1c03d5b66bc1e5803dfebea31463))
+
 # [1.2.0](https://github.com/calebboyd/redis-x-stream/compare/v1.1.1...v1.2.0) (2021-02-11)
 
 
