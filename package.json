@@ -37,7 +37,15 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "ioredis": "^5.2.3"
+    "ioredis": "^4.27.2"
+  },
+  "peerDependencies": {
+    "@types/ioredis": "^4"
+  },
+  "peerDependenciesMeta": {
+    "@types/ioredis": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@calebboyd/semantic-release-config": "^1.0.1",
