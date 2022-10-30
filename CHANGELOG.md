@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0](https://github.com/calebboyd/redis-x-stream/compare/v1.4.1...v2.0.0) (2022-10-30)
+
+
+### Features
+
+* update ioredis ([16b86f7](https://github.com/calebboyd/redis-x-stream/commit/16b86f7e2b716dbd77b95f5fd974a85971c80d77))
+
+
+### BREAKING CHANGES
+
+* update ioredis to 5x, and drop node < 14
+
 ## [1.4.1](https://github.com/calebboyd/redis-x-stream/compare/v1.4.0...v1.4.1) (2022-10-30)
 
 
