@@ -1,4 +1,4 @@
-import { Pipeline } from 'ioredis'
+import { ChainableCommander } from 'ioredis'
 import { RedisStream } from './stream.js'
 import mkDebug from 'debug'
 import { XBatchResult, XStreamResult } from './types.js'
@@ -21,6 +21,11 @@ export async function readAckDelete(
   ack(pipeline, stream)
   read(pipeline, stream)
   const responses = await pipeline.exec()
+
+  if (!responses) {
+    return
+  }
+
   //TODO NOGROUP the consumer group this client was blocked on no longer exists
   for (const result of responses) {
     if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
@@ -42,7 +47,10 @@ export async function readAckDelete(
   }
 }
 
-function ack(client: Pipeline, { deleteOnAck, pendingAcks, group }: RedisStream<KindaAny>): void {
+function ack(
+  client: ChainableCommander,
+  { deleteOnAck, pendingAcks, group }: RedisStream<KindaAny>
+): void {
   if (!group || !pendingAcks.size) return
   for (const [stream, ids] of pendingAcks) {
     client.xack(stream, group, ...ids)
@@ -51,11 +59,14 @@ function ack(client: Pipeline, { deleteOnAck, pendingAcks, group }: RedisStream<
   pendingAcks.clear()
 }
 
-function xgroup(client: Pipeline, { group, streams, first }: RedisStream<KindaAny>): void {
+function xgroup(
+  client: ChainableCommander,
+  { group, streams, first }: RedisStream<KindaAny>
+): void {
   if (!first || !group) return
   for (const [key, start] of streams) {
     debug(`xgroup create ${key} ${group} ${start} mkstream`)
-    client.xgroup('create', key, group, start, 'mkstream')
+    client.xgroup('CREATE', key, group, start, 'MKSTREAM')
   }
 }
 
