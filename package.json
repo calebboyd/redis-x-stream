@@ -1,6 +1,6 @@
 {
   "name": "redis-x-stream",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "MIT",
   "main": "./lib/commonjs/stream.js",
   "exports": {
