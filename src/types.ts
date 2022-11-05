@@ -108,21 +108,6 @@ export interface RedisStreamOptions<T extends Mode> {
    */
   noack?: boolean
   /**
-   * The number of entries to buffer for acknowledgment at the same time.
-   * Removes items from the Redis PEL
-   *
-   * The closer the flushPendingAckCount is to 1 the closer to achieving "exactly once delivery"
-   * At the cost of more frequent redis calls. Default behavior for redis streams can be considered "at least once"
-   *
-   * The higher flushPendingAckCount is - a stream failure/recovery could deliver messages more than once from the PEL
-   *
-   * Defaults to the same value as `.count`
-   *
-   * TODO: not yet implemented
-   * @default 100
-   */
-  flushPendingAckCount?: number
-  /**
    * If iteration is slow, set this to the maximum amount of time that should elapse before pending acks will be flushed
    * This counter is reset after each iteration or ack
    *

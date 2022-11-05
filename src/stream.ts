@@ -10,9 +10,6 @@ import {
   env,
 } from './types.js'
 
-//https://github.com/Microsoft/TypeScript/issues/13995
-type NotNarrowable = any //eslint-disable-line @typescript-eslint/no-explicit-any
-
 export { RedisStreamOptions, Mode }
 
 export class RedisStream<T extends Mode = 'entry'> {
@@ -171,11 +168,11 @@ export class RedisStream<T extends Mode = 'entry'> {
   public async quit(): Promise<void> {
     if (!this.done) {
       this.done = true
-      this.createdConnection &&
-        (await Promise.all([
-          new Promise((resolve) => this.client.once('end', resolve)),
-          this.client.quit(),
-        ]))
+      if (!this.createdConnection) return
+      await Promise.all([
+        new Promise((resolve) => this.client.once('end', resolve)),
+        this.client.quit(),
+      ])
     }
   }
 

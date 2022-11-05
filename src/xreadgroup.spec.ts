@@ -25,6 +25,7 @@ describe('redis-x-stream xreadgroup', () => {
     streams.clear()
     return quit(reader)
   })
+
   it('should create a consumer or group if one is not provided', () => {
     const streamKey = key('my-stream'),
       cstream = redisStream({
@@ -126,12 +127,12 @@ describe('redis-x-stream xreadgroup', () => {
     expect(results.get(streamKey)).toBeUndefined()
   })
 
-  //TODO test some redis error
+  //TODO: test some redis error
 
-  //TODO xreadgroup + block
-  //TODO xreadgroup + noack
-  //TODO explicit COUNT
+  //TODO: xreadgroup + block
+  //TODO: xreadgroup + noack
+  //TODO: explicit COUNT
   //non-iterative calls
-  //TODO xreadgroup + flushPendingAckCount
-  //TODO xreadgroup + flushPendingAckInterval
+  //TODO: xreadgroup + flushPendingAckCount
+  //TODO: xreadgroup + flushPendingAckInterval
 })

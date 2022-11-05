@@ -4,232 +4,272 @@
 
 ## Type parameters
 
-Name | Type | Default |
------- | ------ | ------ |
-`T` | [*Mode*](../modules.md#mode) | *entry* |
+| Name | Type |
+| :------ | :------ |
+| `T` | extends [`Mode`](../modules.md#mode) = ``"entry"`` |
 
-## Hierarchy
-
-* **RedisStream**
-
-## Index
+## Table of contents
 
 ### Constructors
 
-* [constructor](redisstream.md#constructor)
+- [constructor](RedisStream.md#constructor)
 
 ### Properties
 
-* [ackOnIterate](redisstream.md#ackoniterate)
-* [block](redisstream.md#block)
-* [buffers](redisstream.md#buffers)
-* [client](redisstream.md#client)
-* [consumer](redisstream.md#consumer)
-* [count](redisstream.md#count)
-* [deleteOnAck](redisstream.md#deleteonack)
-* [done](redisstream.md#done)
-* [first](redisstream.md#first)
-* [group](redisstream.md#group)
-* [mode](redisstream.md#mode)
-* [noack](redisstream.md#noack)
-* [pendingAcks](redisstream.md#pendingacks)
-* [streams](redisstream.md#streams)
+- [ackOnIterate](RedisStream.md#ackoniterate)
+- [block](RedisStream.md#block)
+- [buffers](RedisStream.md#buffers)
+- [client](RedisStream.md#client)
+- [consumer](RedisStream.md#consumer)
+- [count](RedisStream.md#count)
+- [deleteOnAck](RedisStream.md#deleteonack)
+- [done](RedisStream.md#done)
+- [first](RedisStream.md#first)
+- [group](RedisStream.md#group)
+- [mode](RedisStream.md#mode)
+- [noack](RedisStream.md#noack)
+- [pendingAcks](RedisStream.md#pendingacks)
+- [streams](RedisStream.md#streams)
 
 ### Methods
 
-* [[Symbol.asyncIterator]](redisstream.md#[symbol.asynciterator])
-* [ack](redisstream.md#ack)
-* [quit](redisstream.md#quit)
-* [return](redisstream.md#return)
+- [[asyncIterator]](RedisStream.md#[asynciterator])
+- [ack](RedisStream.md#ack)
+- [quit](RedisStream.md#quit)
+- [return](RedisStream.md#return)
 
 ## Constructors
 
 ### constructor
 
-\+ **new RedisStream**<T\>(`options`: *string* \| [*RedisStreamOptions*](../interfaces/redisstreamoptions.md)<T\>, ...`streams`: *string*[]): [*RedisStream*](redisstream.md)<T\>
+• **new RedisStream**<`T`\>(`options`, ...`streams`)
 
-#### Type parameters:
+#### Type parameters
 
-Name | Type | Default |
------- | ------ | ------ |
-`T` | [*Mode*](../modules.md#mode) | *entry* |
+| Name | Type |
+| :------ | :------ |
+| `T` | extends [`Mode`](../modules.md#mode) = ``"entry"`` |
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`options` | *string* \| [*RedisStreamOptions*](../interfaces/redisstreamoptions.md)<T\> |
-`...streams` | *string*[] |
+| Name | Type |
+| :------ | :------ |
+| `options` | `string` \| [`RedisStreamOptions`](../interfaces/RedisStreamOptions.md)<`T`\> |
+| `...streams` | `string`[] |
 
-**Returns:** [*RedisStream*](redisstream.md)<T\>
+#### Defined in
 
-Defined in: [stream.ts:64](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L64)
+[stream.ts:63](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L63)
 
 ## Properties
 
 ### ackOnIterate
 
-• **ackOnIterate**: *boolean*= false
+• **ackOnIterate**: `boolean` = `false`
 
-Defined in: [stream.ts:38](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L38)
+#### Defined in
+
+[stream.ts:35](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L35)
 
 ___
 
 ### block
 
-• `Optional` **block**: *undefined* \| *number*
+• `Optional` **block**: `number`
 
-Defined in: [stream.ts:34](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L34)
+#### Defined in
+
+[stream.ts:31](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L31)
 
 ___
 
 ### buffers
 
-• `Optional` **buffers**: *undefined* \| *boolean*= false
+• **buffers**: `boolean` = `false`
 
-Defined in: [stream.ts:35](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L35)
+#### Defined in
+
+[stream.ts:32](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L32)
 
 ___
 
 ### client
 
-• `Readonly` **client**: *Redis*
+• `Readonly` **client**: `Redis`
 
-Defined in: [stream.ts:26](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L26)
+#### Defined in
+
+[stream.ts:23](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L23)
 
 ___
 
 ### consumer
 
-• `Optional` `Readonly` **consumer**: *undefined* \| *string*
+• `Optional` `Readonly` **consumer**: `string`
 
-Defined in: [stream.ts:28](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L28)
+#### Defined in
+
+[stream.ts:25](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L25)
 
 ___
 
 ### count
 
-• **count**: *number*= 100
+• **count**: `number` = `100`
 
-Defined in: [stream.ts:32](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L32)
+#### Defined in
+
+[stream.ts:29](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L29)
 
 ___
 
 ### deleteOnAck
 
-• **deleteOnAck**: *boolean*= false
+• **deleteOnAck**: `boolean` = `false`
 
-Defined in: [stream.ts:39](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L39)
+#### Defined in
+
+[stream.ts:36](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L36)
 
 ___
 
 ### done
 
-• **done**: *boolean*= false
+• **done**: `boolean` = `false`
 
 Flag for iterable state
 
-Defined in: [stream.ts:51](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L51)
+#### Defined in
+
+[stream.ts:48](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L48)
 
 ___
 
 ### first
 
-• **first**: *boolean*= false
+• **first**: `boolean` = `false`
 
-Defined in: [stream.ts:52](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L52)
+#### Defined in
+
+[stream.ts:49](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L49)
 
 ___
 
 ### group
 
-• `Optional` `Readonly` **group**: *undefined* \| *string*
+• `Optional` `Readonly` **group**: `string`
 
-Defined in: [stream.ts:27](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L27)
+#### Defined in
+
+[stream.ts:24](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L24)
 
 ___
 
 ### mode
 
-• `Readonly` **mode**: [*Mode*](../modules.md#mode)= 'entry'
+• `Readonly` **mode**: [`Mode`](../modules.md#mode) = `'entry'`
 
 'entry' mode will dispense each entry of each stream
 'stream' mode will dispense each stream containing entries
 'batch' mode will dispense all streams with all entries
 
-Defined in: [stream.ts:25](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L25)
+#### Defined in
+
+[stream.ts:22](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L22)
 
 ___
 
 ### noack
 
-• **noack**: *boolean*= false
+• **noack**: `boolean` = `false`
 
-Defined in: [stream.ts:33](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L33)
+#### Defined in
+
+[stream.ts:30](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L30)
 
 ___
 
 ### pendingAcks
 
-• **pendingAcks**: *Map*<*string*, *string*[]\>
+• **pendingAcks**: `Map`<`string`, `string`[]\>
 
 Acks waiting to be sent on either:
 - timeout
 - async iteration
 
-Defined in: [stream.ts:47](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L47)
+#### Defined in
+
+[stream.ts:44](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L44)
 
 ___
 
 ### streams
 
-• **streams**: *Map*<*string*, *string*\>
+• **streams**: `Map`<`string`, `string`\>
 
-Defined in: [stream.ts:31](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L31)
+#### Defined in
+
+[stream.ts:28](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L28)
 
 ## Methods
 
-### [Symbol.asyncIterator]
+### [asyncIterator]
 
-▸ **[Symbol.asyncIterator]**(): *AsyncIterator*<T *extends* *entry* ? XEntryResult : T *extends* *batch* ? XStreamResult[] : XStreamResult, *any*, *undefined*\>
+▸ **[asyncIterator]**(): `AsyncIterator`<`T` extends ``"entry"`` ? `XEntryResult` : `T` extends ``"batch"`` ? `XStreamResult`[] : `XStreamResult`, `any`, `undefined`\>
 
-**Returns:** *AsyncIterator*<T *extends* *entry* ? XEntryResult : T *extends* *batch* ? XStreamResult[] : XStreamResult, *any*, *undefined*\>
+#### Returns
 
-Defined in: [stream.ts:127](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L127)
+`AsyncIterator`<`T` extends ``"entry"`` ? `XEntryResult` : `T` extends ``"batch"`` ? `XStreamResult`[] : `XStreamResult`, `any`, `undefined`\>
+
+#### Defined in
+
+[stream.ts:124](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L124)
 
 ___
 
 ### ack
 
-▸ **ack**(`stream`: *string*, ...`ids`: *string*[]): *void*
+▸ **ack**(`stream`, ...`ids`): `void`
 
-#### Parameters:
+#### Parameters
 
-Name | Type |
------- | ------ |
-`stream` | *string* |
-`...ids` | *string*[] |
+| Name | Type |
+| :------ | :------ |
+| `stream` | `string` |
+| `...ids` | `string`[] |
 
-**Returns:** *void*
+#### Returns
 
-Defined in: [stream.ts:182](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L182)
+`void`
+
+#### Defined in
+
+[stream.ts:179](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L179)
 
 ___
 
 ### quit
 
-▸ **quit**(): *Promise*<*void*\>
+▸ **quit**(): `Promise`<`void`\>
 
-**Returns:** *Promise*<*void*\>
+#### Returns
 
-Defined in: [stream.ts:171](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L171)
+`Promise`<`void`\>
+
+#### Defined in
+
+[stream.ts:168](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L168)
 
 ___
 
 ### return
 
-▸ `Protected`**return**(): *Promise*<*void*\>
+▸ `Protected` **return**(): `Promise`<`void`\>
 
-**Returns:** *Promise*<*void*\>
+#### Returns
 
-Defined in: [stream.ts:191](https://github.com/calebboyd/pez/blob/91a6433/src/stream.ts#L191)
+`Promise`<`void`\>
+
+#### Defined in
+
+[stream.ts:188](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L188)

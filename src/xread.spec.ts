@@ -48,7 +48,7 @@ describe('redis-x-stream xread', () => {
     let entries = 0
     const streamName = key('my-stream'),
       redisIdRegex = /\d+-\d/,
-      block = 1000,
+      block = 200,
       iterable = new RedisStream({
         block,
         streams: [streamName],
@@ -70,6 +70,43 @@ describe('redis-x-stream xread', () => {
     await consuming
     expect(entries).toEqual(testEntries.length * 20)
   })
-  //TODO calling ack throws
-  //TODO re-iterate done iterable
+
+  it('should throw if ack is called without a group or consumer', async () => {
+    const streamName = key('my-stream')
+    const stream = new RedisStream(streamName)
+    const values = await hydrateForTest(writer, streamName)
+    let ackAttempts = 0
+    for await (const [_, [id, __]] of stream) {
+      try {
+        await stream.ack(id)
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          ackAttempts++
+          expect(e.message).toBe('Cannot ack entries read outside of a consumer group')
+        }
+      }
+    }
+    expect(values.length).toBeGreaterThan(1)
+    expect(ackAttempts).toBe(values.length)
+  })
+
+  it('should not allow re-iteration (done is set)', async () => {
+    const streamName = key('my-stream'),
+      iterable = new RedisStream(streamName)
+    let entries = 0
+    const values = await hydrateForTest(writer, streamName)
+    const iterate = async () => {
+      for await (const [str, entry] of iterable) {
+        entries++
+        expect(str).toEqual(streamName)
+        expect(entry[0]).toMatch(redisIdRegex)
+      }
+    }
+    expect(iterable.done).toBeFalsy()
+    await iterate()
+    expect(iterable.done).toBeTruthy()
+    expect(entries).toEqual(values.length)
+    await iterate()
+    expect(entries).toEqual(values.length)
+  })
 })

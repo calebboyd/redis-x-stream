@@ -22,17 +22,14 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
     ['2', 'hello'],
     ['3', 'hai'],
   ]
-function hydrateForTest(
-  writer: RedisClient,
-  stream: string,
-  ...values: string[][]
-): Promise<unknown> {
+async function hydrateForTest(writer: RedisClient, stream: string, ...values: string[][]) {
   if (!values.length) values = testEntries
   const pipeline = writer.pipeline()
   for (const [key, value] of values) {
     pipeline.xadd(stream, '*', key, value)
   }
-  return pipeline.exec()
+  await pipeline.exec()
+  return values
 }
 
 export { delay, times, quit, hydrateForTest, rand, testEntries, redisIdRegex, drain }

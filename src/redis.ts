@@ -7,6 +7,7 @@ const debug = mkDebug('redis-x-stream')
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type KindaAny = any
+type IncrementalParameters = KindaAny
 
 function isNumber(num: number | string | undefined): num is number {
   return typeof num === 'number' && !Number.isNaN(num)
@@ -26,7 +27,7 @@ export async function readAckDelete(
     return
   }
 
-  //TODO NOGROUP the consumer group this client was blocked on no longer exists
+  //TODO: NOGROUP the consumer group this client was blocked on no longer exists
   for (const result of responses) {
     if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
       throw responses[0]
@@ -70,27 +71,41 @@ function xgroup(
   }
 }
 
-function xread(client: any, { block, count, streams, buffers }: RedisStream<KindaAny>): void {
+function xread(
+  client: ChainableCommander,
+  { block, count, streams, buffers }: RedisStream<KindaAny>
+): void {
   block = block === Infinity ? 0 : block
-  const args = ['COUNT', count, 'STREAMS', ...streams.keys(), ...streams.values()]
-  if (isNumber(block)) {
-    args.unshift(...['BLOCK', block])
-  }
+  const args: Parameters<typeof client['xread']> = ['COUNT', count] as IncrementalParameters
+  if (isNumber(block)) args.unshift('BLOCK', block)
   debug(`xread ${args.join(' ')}`)
-  client[buffers ? 'xreadBuffer' : 'xread'](args)
+  client[buffers ? 'xreadBuffer' : 'xread'](
+    ...args,
+    'STREAMS',
+    ...streams.keys(),
+    ...streams.values()
+  )
 }
+
 function xreadgroup(
-  client: any,
+  client: ChainableCommander,
   { block, count, group, consumer, noack, streams, buffers }: RedisStream<KindaAny>
 ): void {
   block = block === Infinity ? 0 : block
-  const args = ['COUNT', count.toString()]
+  const args: Parameters<typeof client['xreadgroup']> = [
+    'GROUP',
+    group as string,
+    consumer as string,
+    'COUNT',
+    count.toString(),
+  ] as IncrementalParameters
   if (noack) args.push('NOACK')
-  if (isNumber(block)) {
-    args.push('BLOCK', block.toString())
-  }
-  args.push('STREAMS', ...streams.keys(), ...streams.values())
-  debug('xreadgroup' + ` GROUP ${group} ${consumer} ${args.join(' ')}}`)
-  //eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  client[buffers ? 'xreadgroupBuffer' : 'xreadgroup']('GROUP', group!, consumer!, ...args)
+  if (isNumber(block)) args.push('BLOCK', block.toString())
+  debug(`xreadgroup ${args.join(' ')}`)
+  client[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](
+    ...args,
+    'STREAMS',
+    ...streams.keys(),
+    ...streams.values()
+  )
 }
