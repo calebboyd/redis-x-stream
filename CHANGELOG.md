@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.2](https://github.com/calebboyd/redis-x-stream/compare/v2.0.1...v2.0.2) (2022-11-12)
+
+
+### Bug Fixes
+
+* **deps:** remove ioredis 4 types and update package lock ([ae693dc](https://github.com/calebboyd/redis-x-stream/commit/ae693dc7c7284eb54a3d3e921a6d216d660ae829))
+
 ## [2.0.1](https://github.com/calebboyd/redis-x-stream/compare/v2.0.0...v2.0.1) (2022-10-30)
 
 
