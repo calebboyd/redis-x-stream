@@ -102,7 +102,7 @@ function xreadgroup(
   if (noack) args.push('NOACK')
   if (isNumber(block)) args.push('BLOCK', block.toString())
   debug(`xreadgroup ${args.join(' ')}`)
-  client[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](
+  ;(client as any)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](
     ...args,
     'STREAMS',
     ...streams.keys(),
