@@ -102,6 +102,8 @@ function xreadgroup(
   if (noack) args.push('NOACK')
   if (isNumber(block)) args.push('BLOCK', block.toString())
   debug(`xreadgroup ${args.join(' ')}`)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // https://github.com/luin/ioredis/pull/1676#issue-1437398115
   ;(client as any)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](
     ...args,
     'STREAMS',

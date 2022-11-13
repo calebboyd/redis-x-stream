@@ -8,9 +8,12 @@ import {
   Mode,
   modes,
   env,
+  StreamEntry,
 } from './types.js'
 
 export { RedisStreamOptions, Mode }
+
+type ResolvedForCaller = any
 
 export class RedisStream<T extends Mode = 'entry'> {
   //static factoryFor() { //create factory that extends options }
@@ -50,9 +53,9 @@ export class RedisStream<T extends Mode = 'entry'> {
 
   private itr = {
     name: '',
-    prev: undefined as any,
-    entry: undefined as any,
-    stream: undefined as any,
+    prev: undefined as StreamEntry | undefined,
+    entry: null as IterableIterator<StreamEntry> | null,
+    stream: null as IterableIterator<XStreamResult> | null | undefined,
   }
 
   /**
@@ -147,14 +150,17 @@ export class RedisStream<T extends Mode = 'entry'> {
       else {
         this.streams.set(itr.name, this.group ? '>' : result.value[0].toString())
         if (this.ackOnIterate) itr.prev = result.value
-        yield [itr.name, result.value] as any
+        const ret: XEntryResult = [itr.name, result.value]
+        yield ret as ResolvedForCaller
       }
     }
   }
 
   private moveCursors() {
     if (this.first) {
-      this.streams.forEach((v, k) => this.streams.set(k, '>'))
+      for (const [stream] of this.streams) {
+        this.streams.set(stream, '>')
+      }
       this.first = false
     }
   }
@@ -176,13 +182,14 @@ export class RedisStream<T extends Mode = 'entry'> {
     }
   }
 
-  public ack(stream: string, ...ids: string[]): void {
+  public ack(stream: string, ...ids: string[]): undefined {
     if (!this.group) {
       throw new Error('Cannot ack entries read outside of a consumer group')
     }
     const acks = this.pendingAcks.get(stream) || []
     acks.push(...ids)
     this.pendingAcks.set(stream, acks)
+    return
   }
 
   protected async return(): Promise<void> {
