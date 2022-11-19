@@ -5,17 +5,6 @@ import { rand } from './test.util.spec'
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JustForTests = any
 describe('RedisStream xread', () => {
-  it('should accept a mode', async () => {
-    const streams = ['my-stream'],
-      bad = () => redisStream({ mode: 'wat' as JustForTests, streams }),
-      entry = redisStream({ mode: 'entry', streams }),
-      batch = redisStream({ mode: 'batch', streams }),
-      stream = redisStream({ mode: 'stream', streams })
-
-    expect(bad).toThrow(`"wat" is not a valid Mode - use one of:  'entry' | 'batch' | 'stream'`)
-    await Promise.all([entry.quit(), batch.quit(), stream.quit()])
-  })
-
   it('should not quit a client it did not create', async () => {
     const created = redisStream('m')
     expect(created.client.status).toEqual('connecting')

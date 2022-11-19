@@ -14,7 +14,7 @@ function isNumber(num: number | string | undefined): num is number {
 }
 
 export async function readAckDelete(
-  stream: RedisStream<KindaAny>
+  stream: RedisStream
 ): Promise<IterableIterator<XStreamResult> | undefined> {
   const pipeline = stream.client.pipeline(),
     read = stream.group ? xreadgroup : xread
@@ -48,10 +48,7 @@ export async function readAckDelete(
   }
 }
 
-function ack(
-  client: ChainableCommander,
-  { deleteOnAck, pendingAcks, group }: RedisStream<KindaAny>
-): void {
+function ack(client: ChainableCommander, { deleteOnAck, pendingAcks, group }: RedisStream): void {
   if (!group || !pendingAcks.size) return
   for (const [stream, ids] of pendingAcks) {
     client.xack(stream, group, ...ids)
@@ -60,10 +57,7 @@ function ack(
   pendingAcks.clear()
 }
 
-function xgroup(
-  client: ChainableCommander,
-  { group, streams, first }: RedisStream<KindaAny>
-): void {
+function xgroup(client: ChainableCommander, { group, streams, first }: RedisStream): void {
   if (!first || !group) return
   for (const [key, start] of streams) {
     debug(`xgroup create ${key} ${group} ${start} mkstream`)
@@ -71,10 +65,7 @@ function xgroup(
   }
 }
 
-function xread(
-  client: ChainableCommander,
-  { block, count, streams, buffers }: RedisStream<KindaAny>
-): void {
+function xread(client: ChainableCommander, { block, count, streams, buffers }: RedisStream): void {
   block = block === Infinity ? 0 : block
   const args: Parameters<typeof client['xread']> = ['COUNT', count] as IncrementalParameters
   if (isNumber(block)) args.unshift('BLOCK', block)
@@ -89,7 +80,7 @@ function xread(
 
 function xreadgroup(
   client: ChainableCommander,
-  { block, count, group, consumer, noack, streams, buffers }: RedisStream<KindaAny>
+  { block, count, group, consumer, noack, streams, buffers }: RedisStream
 ): void {
   block = block === Infinity ? 0 : block
   const args: Parameters<typeof client['xreadgroup']> = [

@@ -12,57 +12,27 @@
 
 - [RedisStreamOptions](interfaces/RedisStreamOptions.md)
 
-### Type Aliases
-
-- [Mode](modules.md#mode)
-
 ### Functions
 
 - [default](modules.md#default)
-
-## Type Aliases
-
-### Mode
-
-Ƭ **Mode**: ``"entry"`` \| ``"stream"`` \| ``"batch"``
-
-`'entry'` mode is default and will iterate over each stream entry in each stream in the result set
-
-`'stream'` mode will iterate over each XREAD[GROUP] stream result
-
-`'batch'` mode will iterate over each XREAD[GROUP] call result
-
-**`Default`**
-
-`'entry'`
-
-#### Defined in
-
-[types.ts:35](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/types.ts#L35)
 
 ## Functions
 
 ### default
 
-▸ **default**<`T`\>(`options`, ...`streams`): [`RedisStream`](classes/RedisStream.md)<`T`\>
-
-#### Type parameters
-
-| Name | Type |
-| :------ | :------ |
-| `T` | extends [`Mode`](modules.md#mode) = ``"entry"`` |
+▸ **default**(`options`, ...`streams`): [`RedisStream`](classes/RedisStream.md)
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
-| `options` | `string` \| [`RedisStreamOptions`](interfaces/RedisStreamOptions.md)<`T`\> |
+| `options` | `string` \| [`RedisStreamOptions`](interfaces/RedisStreamOptions.md) |
 | `...streams` | `string`[] |
 
 #### Returns
 
-[`RedisStream`](classes/RedisStream.md)<`T`\>
+[`RedisStream`](classes/RedisStream.md)
 
 #### Defined in
 
-[stream.ts:193](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L193)
+[stream.ts:200](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L200)

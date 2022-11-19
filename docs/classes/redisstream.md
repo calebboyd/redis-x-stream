@@ -1,12 +1,6 @@
 [redis-x-stream](../README.md) / [Exports](../modules.md) / RedisStream
 
-# Class: RedisStream<T\>
-
-## Type parameters
-
-| Name | Type |
-| :------ | :------ |
-| `T` | extends [`Mode`](../modules.md#mode) = ``"entry"`` |
+# Class: RedisStream
 
 ## Table of contents
 
@@ -26,7 +20,6 @@
 - [done](RedisStream.md#done)
 - [first](RedisStream.md#first)
 - [group](RedisStream.md#group)
-- [mode](RedisStream.md#mode)
 - [noack](RedisStream.md#noack)
 - [pendingAcks](RedisStream.md#pendingacks)
 - [streams](RedisStream.md#streams)
@@ -42,24 +35,18 @@
 
 ### constructor
 
-• **new RedisStream**<`T`\>(`options`, ...`streams`)
-
-#### Type parameters
-
-| Name | Type |
-| :------ | :------ |
-| `T` | extends [`Mode`](../modules.md#mode) = ``"entry"`` |
+• **new RedisStream**(`options`, ...`streams`)
 
 #### Parameters
 
 | Name | Type |
 | :------ | :------ |
-| `options` | `string` \| [`RedisStreamOptions`](../interfaces/RedisStreamOptions.md)<`T`\> |
+| `options` | `string` \| [`RedisStreamOptions`](../interfaces/RedisStreamOptions.md) |
 | `...streams` | `string`[] |
 
 #### Defined in
 
-[stream.ts:63](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L63)
+[stream.ts:63](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L63)
 
 ## Properties
 
@@ -69,7 +56,7 @@
 
 #### Defined in
 
-[stream.ts:35](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L35)
+[stream.ts:35](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L35)
 
 ___
 
@@ -79,7 +66,7 @@ ___
 
 #### Defined in
 
-[stream.ts:31](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L31)
+[stream.ts:31](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L31)
 
 ___
 
@@ -89,7 +76,7 @@ ___
 
 #### Defined in
 
-[stream.ts:32](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L32)
+[stream.ts:32](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L32)
 
 ___
 
@@ -97,9 +84,13 @@ ___
 
 • `Readonly` **client**: `Redis`
 
+'entry' mode will dispense each entry of each stream
+'stream' mode will dispense each stream containing entries
+'batch' mode will dispense all streams with all entries
+
 #### Defined in
 
-[stream.ts:23](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L23)
+[stream.ts:23](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L23)
 
 ___
 
@@ -109,7 +100,7 @@ ___
 
 #### Defined in
 
-[stream.ts:25](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L25)
+[stream.ts:25](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L25)
 
 ___
 
@@ -119,7 +110,7 @@ ___
 
 #### Defined in
 
-[stream.ts:29](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L29)
+[stream.ts:29](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L29)
 
 ___
 
@@ -129,7 +120,7 @@ ___
 
 #### Defined in
 
-[stream.ts:36](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L36)
+[stream.ts:36](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L36)
 
 ___
 
@@ -141,7 +132,7 @@ Flag for iterable state
 
 #### Defined in
 
-[stream.ts:48](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L48)
+[stream.ts:48](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L48)
 
 ___
 
@@ -151,7 +142,7 @@ ___
 
 #### Defined in
 
-[stream.ts:49](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L49)
+[stream.ts:49](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L49)
 
 ___
 
@@ -161,21 +152,7 @@ ___
 
 #### Defined in
 
-[stream.ts:24](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L24)
-
-___
-
-### mode
-
-• `Readonly` **mode**: [`Mode`](../modules.md#mode) = `'entry'`
-
-'entry' mode will dispense each entry of each stream
-'stream' mode will dispense each stream containing entries
-'batch' mode will dispense all streams with all entries
-
-#### Defined in
-
-[stream.ts:22](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L22)
+[stream.ts:24](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L24)
 
 ___
 
@@ -185,7 +162,7 @@ ___
 
 #### Defined in
 
-[stream.ts:30](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L30)
+[stream.ts:30](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L30)
 
 ___
 
@@ -199,7 +176,7 @@ Acks waiting to be sent on either:
 
 #### Defined in
 
-[stream.ts:44](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L44)
+[stream.ts:44](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L44)
 
 ___
 
@@ -209,27 +186,27 @@ ___
 
 #### Defined in
 
-[stream.ts:28](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L28)
+[stream.ts:28](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L28)
 
 ## Methods
 
 ### [asyncIterator]
 
-▸ **[asyncIterator]**(): `AsyncIterator`<`T` extends ``"entry"`` ? `XEntryResult` : `T` extends ``"batch"`` ? `XStreamResult`[] : `XStreamResult`, `any`, `undefined`\>
+▸ **[asyncIterator]**(): `AsyncIterator`<`XEntryResult`, `any`, `undefined`\>
 
 #### Returns
 
-`AsyncIterator`<`T` extends ``"entry"`` ? `XEntryResult` : `T` extends ``"batch"`` ? `XStreamResult`[] : `XStreamResult`, `any`, `undefined`\>
+`AsyncIterator`<`XEntryResult`, `any`, `undefined`\>
 
 #### Defined in
 
-[stream.ts:124](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L124)
+[stream.ts:128](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L128)
 
 ___
 
 ### ack
 
-▸ **ack**(`stream`, ...`ids`): `void`
+▸ **ack**(`stream`, ...`ids`): `undefined`
 
 #### Parameters
 
@@ -240,11 +217,11 @@ ___
 
 #### Returns
 
-`void`
+`undefined`
 
 #### Defined in
 
-[stream.ts:179](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L179)
+[stream.ts:185](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L185)
 
 ___
 
@@ -258,7 +235,7 @@ ___
 
 #### Defined in
 
-[stream.ts:168](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L168)
+[stream.ts:174](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L174)
 
 ___
 
@@ -272,4 +249,4 @@ ___
 
 #### Defined in
 
-[stream.ts:188](https://github.com/calebboyd/redis-x-stream/blob/b5db328/src/stream.ts#L188)
+[stream.ts:195](https://github.com/calebboyd/redis-x-stream/blob/2ca6a5a/src/stream.ts#L195)

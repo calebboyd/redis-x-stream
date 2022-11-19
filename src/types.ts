@@ -23,38 +23,11 @@ export class RedisStreamAbortedError extends Error {
   message = 'RedisStream Aborted with unprocessed results'
 }
 
-/**
- * `'entry'` mode is default and will iterate over each stream entry in each stream in the result set
- *
- * `'stream'` mode will iterate over each XREAD[GROUP] stream result
- *
- * `'batch'` mode will iterate over each XREAD[GROUP] call result
- *
- * @default `'entry'`
- */
-export type Mode = 'entry' | 'stream' | 'batch'
-
-export const modes = {
-  entry: true,
-  stream: true,
-  batch: true,
-} as const
-
 export const env: { REDIS_X_STREAM_URL?: string } = {}
 if (typeof process !== 'undefined' && process.env) {
   env.REDIS_X_STREAM_URL = process.env.REDIS_X_STREAM_URL
 }
-export interface RedisStreamOptions<T extends Mode> {
-  /**
-   * `'entry'` mode is default and will iterate over each stream entry in each stream in the result set
-   *
-   * `'stream'` mode will iterate over each XREAD[GROUP] stream result
-   *
-   * `'batch'` mode will iterate over each XREAD[GROUP] call result
-   *
-   * @default `'entry'`
-   */
-  mode?: T
+export interface RedisStreamOptions {
   /**
    * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
    */
