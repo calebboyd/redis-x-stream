@@ -16,6 +16,7 @@
 - [group](RedisStreamOptions.md#group)
 - [noack](RedisStreamOptions.md#noack)
 - [redis](RedisStreamOptions.md#redis)
+- [redisControl](RedisStreamOptions.md#rediscontrol)
 - [streams](RedisStreamOptions.md#streams)
 
 ## Properties
@@ -33,7 +34,7 @@ false
 
 #### Defined in
 
-[types.ts:71](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L71)
+[types.ts:77](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L77)
 
 ___
 
@@ -46,7 +47,7 @@ while waiting for new entries on any stream, passed to xread or xreadgroup
 
 #### Defined in
 
-[types.ts:65](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L65)
+[types.ts:71](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L71)
 
 ___
 
@@ -59,7 +60,7 @@ This applies to entry id and kv results
 
 #### Defined in
 
-[types.ts:54](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L54)
+[types.ts:60](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L60)
 
 ___
 
@@ -72,7 +73,7 @@ Note: if only consumer is provided, a group is created automatically
 
 #### Defined in
 
-[types.ts:44](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L44)
+[types.ts:44](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L44)
 
 ___
 
@@ -89,7 +90,7 @@ eg. the "highWaterMark"
 
 #### Defined in
 
-[types.ts:60](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L60)
+[types.ts:66](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L66)
 
 ___
 
@@ -106,7 +107,7 @@ false
 
 #### Defined in
 
-[types.ts:77](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L77)
+[types.ts:83](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L83)
 
 ___
 
@@ -121,7 +122,7 @@ TODO: not yet implemented
 
 #### Defined in
 
-[types.ts:89](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L89)
+[types.ts:95](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L95)
 
 ___
 
@@ -134,7 +135,7 @@ Note: if only a group is provided a consumer is created automatically
 
 #### Defined in
 
-[types.ts:39](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L39)
+[types.ts:39](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L39)
 
 ___
 
@@ -150,7 +151,7 @@ false
 
 #### Defined in
 
-[types.ts:82](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L82)
+[types.ts:88](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L88)
 
 ___
 
@@ -158,12 +159,26 @@ ___
 
 • `Optional` **redis**: `string` \| `Redis` \| `RedisOptions`
 
-The IORedis client connection.
+The IORedis client connection (reader).
 NOTE: by default this connection becomes a "reader" when block > 0
 
 #### Defined in
 
-[types.ts:49](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L49)
+[types.ts:49](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L49)
+
+___
+
+### redisControl
+
+• `Optional` **redisControl**: `string` \| `Redis` \| `RedisOptions`
+
+The IORedis control client connection (writer).
+NOTE: by default this connection becomes a "writer" when block = 0 or Infinity
+Only allowed if block = 0 or Infinity
+
+#### Defined in
+
+[types.ts:55](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L55)
 
 ___
 
@@ -175,4 +190,4 @@ Redis stream keys to be read. If a Record is provided each value is the starting
 
 #### Defined in
 
-[types.ts:34](https://github.com/calebboyd/redis-x-stream/blob/4a00dad/src/types.ts#L34)
+[types.ts:34](https://github.com/calebboyd/redis-x-stream/blob/52317a3/src/types.ts#L34)

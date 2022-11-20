@@ -32,8 +32,3 @@ async function populate(stream, count) {
 
 See the [API Docs](docs/classes/RedisStream.md#constructor) for available options.
 
-## Advanced Usage
-
-A common use case for redis streams is task processing. This iterable abstraction can help with handling tasks _at least once_.
-
-For example, You can immediately setup a group and consumer for any stream or streams.

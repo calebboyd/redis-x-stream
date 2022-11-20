@@ -43,10 +43,16 @@ export interface RedisStreamOptions {
    */
   consumer?: string
   /**
-   * The IORedis client connection.
+   * The IORedis client connection (reader).
    * NOTE: by default this connection becomes a "reader" when block > 0
    */
   redis?: Redis | string | RedisOptions
+  /**
+   * The IORedis control client connection (writer).
+   * NOTE: by default this connection becomes a "writer" when block = 0 or Infinity
+   * Only allowed if block = 0 or Infinity
+   */
+  redisControl?: Redis | string | RedisOptions
   /**
    * Return buffers with each xread operation
    * This applies to entry id and kv results

@@ -27,7 +27,7 @@ describe('redis-x-stream xread', () => {
     streams.clear()
     return quit(reader)
   })
-  it('should dispense in entry mode (default)', async () => {
+  it('should dispense entries', async () => {
     const streamName = key('my-straam'),
       iterable = new RedisStream(streamName)
     await hydrateForTest(writer, streamName, ...testEntries)

@@ -6,24 +6,57 @@ import { rand } from './test.util.spec'
 type JustForTests = any
 describe('RedisStream xread', () => {
   it('should not quit a client it did not create', async () => {
-    const created = redisStream('m')
+    const created = redisStream({ streams: ['m'], block: Infinity })
     expect(created.client.status).toEqual('connecting')
+    expect(created.control?.status).toEqual('connecting')
     await created.quit()
     expect(created.client.status).toEqual('end')
+    expect(created.control?.status).toEqual('end')
     const redis = new Redis()
-    const passed = redisStream({ streams: ['m'], redis })
+    const redisControl = new Redis()
+    const passed = redisStream({
+      streams: ['m'],
+      redis,
+      redisControl,
+      block: Infinity,
+    })
     expect(passed.client.status).toEqual('connecting')
+    expect(passed.control?.status).toEqual('connecting')
     await passed.quit()
     expect(passed.client.status).toEqual('connecting')
-    await passed.client.ping()
+    expect(passed.control?.status).toEqual('connecting')
+    await Promise.all([passed.client.ping(), passed.control?.ping()])
     expect(passed.client.status).toEqual('ready')
+    expect(passed.control?.status).toEqual('ready')
     redis.disconnect()
+    redisControl.disconnect()
   })
 
   it('should accept redis options (string or options object)', () => {
     const str = redisStream({ redis: 'redis://localhost:6739', streams: ['my-stream'] }),
       obj = redisStream({ redis: { host: 'localhost' }, streams: ['m'] })
     return Promise.all([str.quit(), obj.quit()])
+  })
+
+  it('should not accept redis control options if stream is not blocking', async () => {
+    expect(() =>
+      redisStream({ redisControl: 'redis://localhost:6739', streams: ['my-stream'] })
+    ).toThrow(
+      'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`'
+    )
+    const stream = redisStream({
+      redisControl: 'redis://localhost:6739',
+      streams: ['my-stream'],
+      block: 0,
+    })
+    await stream.quit()
+  })
+
+  it('should not accept unrecognized options', () => {
+    const random = { some: 'prop', thing: 'wrong' }
+    expect(() => redisStream({ redis: { host: 'localhost' }, streams: ['m'], ...random })).toThrow(
+      `Unexpected option(s): "some","thing"`
+    )
   })
 
   it('should manage initial and finished state', async () => {

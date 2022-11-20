@@ -1,26 +1,34 @@
-import Redis from 'ioredis'
-import { readAckDelete } from './redis.js'
+import { hostname } from 'node:os'
+import { createClient, readAckDelete } from './redis.js'
 import {
   RedisStreamOptions,
   RedisClient,
   XEntryResult,
   XStreamResult,
-  env,
   StreamEntry,
 } from './types.js'
 
 export { RedisStreamOptions }
 
-type ResolvedForCaller = any
+const allowedKeys = {
+  streams: 1,
+  group: 1,
+  consumer: 1,
+  redis: 1,
+  buffers: 1,
+  count: 1,
+  block: 1,
+  ackOnIterate: 1,
+  deleteOnAck: 1,
+  noack: 1,
+  flushPendingAckInterval: 1,
+  redisControl: 1,
+}
+const hasOwn = {}.hasOwnProperty
 
 export class RedisStream {
-  //static factoryFor() { //create factory that extends options }
-  /**
-   * 'entry' mode will dispense each entry of each stream
-   * 'stream' mode will dispense each stream containing entries
-   * 'batch' mode will dispense all streams with all entries
-   */
   public readonly client: RedisClient
+  public readonly control?: RedisClient
   public readonly group?: string
   public readonly consumer?: string
 
@@ -38,7 +46,7 @@ export class RedisStream {
   //state
   /**
    * Acks waiting to be sent on either:
-   * - timeout
+   * - interval
    * - async iteration
    */
   public pendingAcks = new Map<string, string[]>()
@@ -58,34 +66,47 @@ export class RedisStream {
   /**
    * Did we create the redis connection?
    */
-  private createdConnection = true
+  private createdConnection = false
+  /**
+   * Did we create the control redis connection?
+   */
+  private createdControlConnection = false
 
   constructor(options: RedisStreamOptions | string, ...streams: string[]) {
     if (typeof options === 'string') {
       streams.unshift(options)
       options = { streams }
-    }
-    if (typeof options.redis === 'object') {
-      if ('pipeline' in options.redis) {
-        this.client = options.redis
-        this.createdConnection = false
-      } else {
-        this.client = new Redis({ ...options.redis })
-      }
-    } else if (typeof options.redis === 'string') {
-      this.client = new Redis(options.redis)
-    } else if (env.REDIS_X_STREAM_URL) {
-      this.client = new Redis(env.REDIS_X_STREAM_URL)
     } else {
-      this.client = new Redis()
+      const extraneousOpts = Object.keys(options).filter((opt) => !hasOwn.call(allowedKeys, opt))
+      if (extraneousOpts.length) {
+        throw new TypeError(`Unexpected option(s): ${JSON.stringify(extraneousOpts).slice(1, -1)}`)
+      }
     }
+
+    if (typeof options.block === 'number' && !Number.isNaN(options.block)) {
+      this.block = options.block
+    }
+
+    if (this.block === 0 || this.block === Infinity) {
+      const { client, created } = createClient(options.redisControl)
+      this.control = client
+      this.createdControlConnection = created
+    } else if (options.redisControl) {
+      throw new Error(
+        'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`'
+      )
+    }
+
+    const { created, client } = createClient(options.redis)
+    this.createdConnection = created
+    this.client = client
 
     if (options.consumer || options.group) {
       if (!options.group) {
         this.group = '_xs_g_' + options.consumer
       }
       if (!options.consumer) {
-        this.consumer = '_xs_c_' + options.group
+        this.consumer = '_xs_c_' + options.group + '_' + hostname()
       }
       this.group = this.group ?? options.group
       this.consumer = this.consumer ?? options.consumer
@@ -110,10 +131,6 @@ export class RedisStream {
 
     if (options.noack) {
       this.noack = true
-    }
-
-    if (typeof options.block === 'number' && !Number.isNaN(options.block)) {
-      this.block = options.block
     }
 
     if (options.deleteOnAck) {
@@ -165,8 +182,7 @@ export class RedisStream {
       } else {
         this.streams.set(itr.name, this.group ? '>' : result.value[0].toString())
         if (this.ackOnIterate) itr.prev = result.value
-        const ret: XEntryResult = [itr.name, result.value]
-        yield ret as ResolvedForCaller
+        yield [itr.name, result.value]
       }
     }
   }
@@ -174,10 +190,13 @@ export class RedisStream {
   public async quit(): Promise<void> {
     if (!this.done) {
       this.done = true
-      if (!this.createdConnection) return
+      if (!(this.createdConnection || this.createdControlConnection)) return
       await Promise.all([
-        new Promise((resolve) => this.client.once('end', resolve)),
-        this.client.quit(),
+        this.createdConnection && new Promise((resolve) => this.client.once('end', resolve)),
+        this.createdConnection && this.client.quit(),
+        this.createdControlConnection &&
+          new Promise((resolve) => this.control?.once('end', resolve)),
+        this.createdControlConnection && this.control?.quit(),
       ])
     }
   }

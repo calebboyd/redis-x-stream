@@ -1,4 +1,5 @@
 import redisStream from './stream.js'
+import { hostname } from 'os'
 import { drain, hydrateForTest, quit, rand, redisIdRegex, testEntries } from './test.util.spec.js'
 import { RedisClient } from './types.js'
 import Redis from 'ioredis'
@@ -36,7 +37,7 @@ describe('redis-x-stream xreadgroup', () => {
         streams: [streamKey],
         consumer: 'my-consumer',
       })
-    expect(cstream.consumer).toEqual('_xs_c_my-group')
+    expect(cstream.consumer).toEqual(`_xs_c_my-group_${hostname()}`)
     expect(cstream.group).toEqual('my-group')
     expect(gstream.group).toEqual('_xs_g_my-consumer')
     expect(gstream.consumer).toEqual('my-consumer')

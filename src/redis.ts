@@ -1,7 +1,7 @@
-import { ChainableCommander } from 'ioredis'
+import Redis, { ChainableCommander, RedisOptions } from 'ioredis'
 import { RedisStream } from './stream.js'
 import mkDebug from 'debug'
-import { XBatchResult, XStreamResult } from './types.js'
+import { XBatchResult, XStreamResult, env } from './types.js'
 
 const debug = mkDebug('redis-x-stream')
 
@@ -101,4 +101,24 @@ function xreadgroup(
     ...streams.keys(),
     ...streams.values()
   )
+}
+
+export function createClient(options?: Redis | string | RedisOptions) {
+  let client: Redis,
+    created = true
+  if (typeof options === 'object') {
+    if ('pipeline' in options) {
+      client = options
+      created = false
+    } else {
+      client = new Redis({ ...options })
+    }
+  } else if (typeof options === 'string') {
+    client = new Redis(options)
+  } else if (env.REDIS_X_STREAM_URL) {
+    client = new Redis(env.REDIS_X_STREAM_URL)
+  } else {
+    client = new Redis()
+  }
+  return { client, created }
 }
