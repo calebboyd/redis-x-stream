@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.0.0](https://github.com/calebboyd/redis-x-stream/compare/v2.1.0...v3.0.0) (2022-11-20)
+
+
+### Features
+
+* add control client for adjusting blocking behavior ([fa88e5d](https://github.com/calebboyd/redis-x-stream/commit/fa88e5dd7b3004e3cc3025a2e26ab8e370ec6514))
+
+
+### BREAKING CHANGES
+
+* only permitted options are accepted
+
 # [2.1.0](https://github.com/calebboyd/redis-x-stream/compare/v2.0.3...v2.1.0) (2022-11-19)
 
 
