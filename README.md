@@ -32,3 +32,47 @@ async function populate(stream, count) {
 
 See the [API Docs](docs/classes/RedisStream.md#constructor) for available options.
 
+## Advanced Usage
+
+### Task Processing
+
+If you have a cluster of processes reading redis stream entries you likely want to utilize redis consumer groups
+
+A task processing application may look like the following:
+
+```javascript
+const control = { /* some control event emitter */ }
+const stream = new RedisStream({
+  streams: ['my-stream'],
+  group: ' ',
+  //eg. k8s StatefulSet hostname. or Cloud Foundry instance index
+  consumer: 'tpc_' + process.env.SOME_ORDINAL_IDENTIFIER,
+  block: Infinity,
+  ackOnIterate: true,
+  deleteOnAck: true,
+})
+
+control.on('new-source', (streamName) => {
+  //Add an additional source stream to a blocked stream.
+  stream.addStream(streamName)
+})
+control.on('end', async () => {
+  //ending the stream will stop the iteration immediately. Leaving items in the PEL (up to COUNT)
+  await stream.end()
+})
+control.on('shutdown', async () => {
+  //drain will process all claimed entries (the PEL) and stop iteration
+  await stream.drain()
+})
+
+
+const semaphore = new Semaphore(10)
+for await (const [streamName, [id, keyvals]] of stream) {
+  await semaphore.acquire()
+  tryTask(id, keyvals)
+}
+```
+
+
+
+
