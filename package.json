@@ -1,15 +1,20 @@
 {
   "name": "redis-x-stream",
+  "description": "An async iterable interface for redis streams",
   "version": "3.1.0",
   "license": "MIT",
-  "main": "./lib/commonjs/stream.js",
-  "exports": {
-    ".": {
-      "import": "./lib/es2018/stream.js",
-      "require": "./lib/commonjs/stream.js"
-    }
-  },
-  "type": "module",
+  "keywords": [
+    "queue",
+    "stream",
+    "redis",
+    "tasks",
+    "redis-queue",
+    "job-queue",
+    "jobs",
+    "redis-stream",
+    "consumer",
+    "consumer-group"
+  ],
   "scripts": {
     "build": "rm -rf lib && npm run lint && npm run compile",
     "docs": "typedoc src/stream.ts --excludePrivate",
@@ -27,6 +32,16 @@
     "lib",
     "!**/*.spec.js"
   ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "node": {
+        "import": "./lib/es2018/stream.js",
+        "require": "./lib/commonjs/stream.js"
+      }
+    }
+  },
+  "type": "module",
   "dependencies": {
     "debug": "^4.3.4",
     "ioredis": "^5.2.4"

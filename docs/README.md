@@ -2,14 +2,13 @@ redis-x-stream / [Exports](modules.md)
 
 # redis-x-stream
 
-An [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/asyncIterator) that emits redis stream entries.
-Requires Redis 5 or greater.
+Create async iterables that emit redis stream entries. Requires Redis 5 or greater.
 
-![release](https://badgen.net/github/release/calebboyd/redis-x-stream)
-![license](https://badgen.net/badge/license/MIT/blue)
+[![release](https://badgen.net/github/release/calebboyd/redis-x-stream)](https://www.npmjs.com/package/redis-x-stream)
+[![license](https://badgen.net/badge/license/MIT/blue)](https://github.com/calebboyd/redis-x-stream/blob/main/LICENSE)
 
-![test](https://github.com/calebboyd/redis-x-stream/actions/workflows/test.yml/badge.svg
-)
+[![test](https://github.com/calebboyd/redis-x-stream/actions/workflows/test.yml/badge.svg)](https://github.com/calebboyd/redis-x-stream/actions)
+
 ## Getting Started
 
 ```javascript

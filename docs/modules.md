@@ -35,4 +35,4 @@
 
 #### Defined in
 
-[stream.ts:282](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L282)
+[stream.ts:282](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L282)

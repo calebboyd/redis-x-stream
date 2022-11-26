@@ -34,7 +34,7 @@ false
 
 #### Defined in
 
-[types.ts:76](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L76)
+[types.ts:76](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L76)
 
 ___
 
@@ -47,7 +47,7 @@ while waiting for new entries on any stream, passed to xread or xreadgroup
 
 #### Defined in
 
-[types.ts:70](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L70)
+[types.ts:70](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L70)
 
 ___
 
@@ -60,7 +60,7 @@ This applies to entry id and kv results
 
 #### Defined in
 
-[types.ts:59](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L59)
+[types.ts:59](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L59)
 
 ___
 
@@ -73,7 +73,7 @@ Note: if only consumer is provided, a group is created automatically
 
 #### Defined in
 
-[types.ts:43](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L43)
+[types.ts:43](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L43)
 
 ___
 
@@ -90,7 +90,7 @@ eg. the "highWaterMark"
 
 #### Defined in
 
-[types.ts:65](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L65)
+[types.ts:65](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L65)
 
 ___
 
@@ -107,7 +107,7 @@ false
 
 #### Defined in
 
-[types.ts:82](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L82)
+[types.ts:82](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L82)
 
 ___
 
@@ -122,7 +122,7 @@ TODO: not yet implemented
 
 #### Defined in
 
-[types.ts:94](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L94)
+[types.ts:94](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L94)
 
 ___
 
@@ -135,7 +135,7 @@ Note: if only a group is provided a consumer is created automatically
 
 #### Defined in
 
-[types.ts:38](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L38)
+[types.ts:38](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L38)
 
 ___
 
@@ -151,7 +151,7 @@ false
 
 #### Defined in
 
-[types.ts:87](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L87)
+[types.ts:87](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L87)
 
 ___
 
@@ -164,7 +164,7 @@ NOTE: by default this connection becomes a "reader" when block > 0
 
 #### Defined in
 
-[types.ts:48](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L48)
+[types.ts:48](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L48)
 
 ___
 
@@ -178,7 +178,7 @@ Only allowed if block = 0 or Infinity
 
 #### Defined in
 
-[types.ts:54](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L54)
+[types.ts:54](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L54)
 
 ___
 
@@ -190,4 +190,4 @@ Redis stream keys to be read. If a Record is provided each value is the starting
 
 #### Defined in
 
-[types.ts:33](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/types.ts#L33)
+[types.ts:33](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L33)

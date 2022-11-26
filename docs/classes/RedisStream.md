@@ -52,7 +52,7 @@
 
 #### Defined in
 
-[stream.ts:82](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L82)
+[stream.ts:82](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L82)
 
 ## Properties
 
@@ -62,7 +62,7 @@
 
 #### Defined in
 
-[stream.ts:44](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L44)
+[stream.ts:44](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L44)
 
 ___
 
@@ -72,7 +72,7 @@ ___
 
 #### Defined in
 
-[stream.ts:40](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L40)
+[stream.ts:40](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L40)
 
 ___
 
@@ -82,7 +82,7 @@ ___
 
 #### Defined in
 
-[stream.ts:34](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L34)
+[stream.ts:34](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L34)
 
 ___
 
@@ -92,7 +92,7 @@ ___
 
 #### Defined in
 
-[stream.ts:41](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L41)
+[stream.ts:41](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L41)
 
 ___
 
@@ -102,7 +102,7 @@ ___
 
 #### Defined in
 
-[stream.ts:30](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L30)
+[stream.ts:30](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L30)
 
 ___
 
@@ -112,7 +112,7 @@ ___
 
 #### Defined in
 
-[stream.ts:33](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L33)
+[stream.ts:33](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L33)
 
 ___
 
@@ -122,7 +122,7 @@ ___
 
 #### Defined in
 
-[stream.ts:31](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L31)
+[stream.ts:31](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L31)
 
 ___
 
@@ -132,7 +132,7 @@ ___
 
 #### Defined in
 
-[stream.ts:38](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L38)
+[stream.ts:38](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L38)
 
 ___
 
@@ -142,7 +142,7 @@ ___
 
 #### Defined in
 
-[stream.ts:45](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L45)
+[stream.ts:45](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L45)
 
 ___
 
@@ -154,7 +154,7 @@ Flag for iterable state
 
 #### Defined in
 
-[stream.ts:57](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L57)
+[stream.ts:57](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L57)
 
 ___
 
@@ -164,7 +164,7 @@ ___
 
 #### Defined in
 
-[stream.ts:59](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L59)
+[stream.ts:59](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L59)
 
 ___
 
@@ -174,7 +174,7 @@ ___
 
 #### Defined in
 
-[stream.ts:58](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L58)
+[stream.ts:58](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L58)
 
 ___
 
@@ -184,7 +184,7 @@ ___
 
 #### Defined in
 
-[stream.ts:32](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L32)
+[stream.ts:32](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L32)
 
 ___
 
@@ -194,7 +194,7 @@ ___
 
 #### Defined in
 
-[stream.ts:39](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L39)
+[stream.ts:39](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L39)
 
 ___
 
@@ -208,7 +208,7 @@ Acks waiting to be sent on either:
 
 #### Defined in
 
-[stream.ts:53](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L53)
+[stream.ts:53](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L53)
 
 ___
 
@@ -218,7 +218,7 @@ ___
 
 #### Defined in
 
-[stream.ts:37](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L37)
+[stream.ts:37](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L37)
 
 ## Methods
 
@@ -232,7 +232,7 @@ ___
 
 #### Defined in
 
-[stream.ts:160](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L160)
+[stream.ts:160](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L160)
 
 ___
 
@@ -253,7 +253,7 @@ ___
 
 #### Defined in
 
-[stream.ts:226](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L226)
+[stream.ts:226](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L226)
 
 ___
 
@@ -273,7 +273,7 @@ ___
 
 #### Defined in
 
-[stream.ts:250](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L250)
+[stream.ts:250](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L250)
 
 ___
 
@@ -289,7 +289,7 @@ Iterate through remaining items in the PEL and exit
 
 #### Defined in
 
-[stream.ts:258](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L258)
+[stream.ts:258](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L258)
 
 ___
 
@@ -305,7 +305,7 @@ Immediately stop processing entries
 
 #### Defined in
 
-[stream.ts:266](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L266)
+[stream.ts:266](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L266)
 
 ___
 
@@ -319,7 +319,7 @@ ___
 
 #### Defined in
 
-[stream.ts:212](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L212)
+[stream.ts:212](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L212)
 
 ___
 
@@ -333,4 +333,4 @@ ___
 
 #### Defined in
 
-[stream.ts:277](https://github.com/calebboyd/redis-x-stream/blob/d84497b/src/stream.ts#L277)
+[stream.ts:277](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/stream.ts#L277)
