@@ -9,7 +9,6 @@ export type StreamEntry = [StreamEntryId, StreamEntryKeyValues]
 export type XEntryResult = [StreamKey, StreamEntry]
 //Result Types from iterator
 export type XStreamResult = [StreamKey, StreamEntry[]]
-export type XBatchResult = XStreamResult[]
 
 //Buffers
 export type StreamEntryKeyValueBuffers = Buffer[]

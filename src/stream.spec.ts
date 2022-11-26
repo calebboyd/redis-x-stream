@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import Redis from 'ioredis'
 import redisStream from './stream'
 import { rand } from './test.util.spec'
@@ -60,8 +61,8 @@ describe('RedisStream xread', () => {
   })
 
   it('should manage initial and finished state', async () => {
-    const stream = redisStream('my-stream' + rand())
-    expect(stream.count).toEqual(100)
+    const stream = redisStream({ streams: ['my-stream' + rand()], count: 2 })
+    expect(stream.count).toEqual(2)
     expect(stream.noack).toEqual(false)
     expect(stream.block).toBeUndefined()
     expect(stream.deleteOnAck).toBeFalsy()
@@ -88,7 +89,7 @@ describe('RedisStream xread', () => {
     return Promise.all([str.quit(), arr.quit(), rec.quit()])
   })
 
-  it('should start at zero by default for xread ', () => {
+  it('should start at zero by default for xread', () => {
     const myStream = 'key' + rand()
     const stream = redisStream(myStream)
     expect(stream.streams.get(myStream)).toEqual('0')

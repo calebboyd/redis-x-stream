@@ -1,5 +1,5 @@
 import { hostname } from 'node:os'
-import { createClient, readAckDelete } from './redis.js'
+import { ack, createClient, readAckDelete } from './redis.js'
 import {
   RedisStreamOptions,
   RedisClient,
@@ -31,6 +31,7 @@ export class RedisStream {
   public readonly control?: RedisClient
   public readonly group?: string
   public readonly consumer?: string
+  public readonly blocked: boolean = false
 
   //xread options
   public streams: Map<string, string>
@@ -55,6 +56,12 @@ export class RedisStream {
    */
   public done = false
   public first = false
+  public draining = false
+  private unblocked = false
+  private reading = false
+
+  private readerId: number | null = null
+  private pendingId: Promise<number | null> | null = null
 
   private itr = {
     name: '',
@@ -88,6 +95,7 @@ export class RedisStream {
     }
 
     if (this.block === 0 || this.block === Infinity) {
+      this.blocked = true
       const { client, created } = createClient(options.redisControl)
       this.control = client
       this.createdControlConnection = created
@@ -100,6 +108,13 @@ export class RedisStream {
     const { created, client } = createClient(options.redis)
     this.createdConnection = created
     this.client = client
+
+    if (this.blocked) {
+      this.pendingId = this.client.client('ID').then(
+        (id) => (this.readerId = id),
+        () => (this.pendingId = this.readerId = null)
+      )
+    }
 
     if (options.consumer || options.group) {
       if (!options.group) {
@@ -152,9 +167,15 @@ export class RedisStream {
         this.itr.prev = this.ack(this.itr.name, this.itr.prev[0].toString())
       }
       if (!itr.stream) {
+        this.reading = true
         itr.stream = await readAckDelete(this)
+        this.reading = false
       }
       if (!itr.stream && !this.first) {
+        if (this.unblocked) {
+          this.unblocked = false
+          continue
+        }
         return this.quit()
       }
       if (this.first) {
@@ -180,6 +201,7 @@ export class RedisStream {
       if (result.done) {
         itr.entry = null
       } else {
+        //TODO add test case for this '>'
         this.streams.set(itr.name, this.group ? '>' : result.value[0].toString())
         if (this.ackOnIterate) itr.prev = result.value
         yield [itr.name, result.value]
@@ -209,6 +231,47 @@ export class RedisStream {
     acks.push(...ids)
     this.pendingAcks.set(stream, acks)
     return
+  }
+
+  private async maybeUnblock() {
+    if (this.reading && !this.done) {
+      if (typeof this.readerId !== 'number') {
+        await this.pendingId
+        this.pendingId = null
+      }
+      if (typeof this.readerId !== 'number') {
+        throw new Error('Unable to read client id')
+      }
+      this.unblocked = true
+      await this.control?.client('UNBLOCK', this.readerId)
+    }
+  }
+
+  public async addStream(streamName: string) {
+    this.streams.set(streamName, '0')
+    await this.maybeUnblock()
+  }
+
+  /**
+   * Iterate through remaining items in the PEL and exit
+   */
+  public async drain() {
+    this.draining = true
+    await this.maybeUnblock()
+  }
+
+  /**
+   * Immediately stop processing entries
+   */
+  public async end() {
+    if (this.control && this.readerId) {
+      const pipeline = this.control.pipeline()
+      ack(pipeline, this)
+      pipeline.client('UNBLOCK', this.readerId)
+      await Promise.all([pipeline.exec(), this.quit()])
+    } else {
+      await this.quit()
+    }
   }
 
   protected async return(): Promise<void> {

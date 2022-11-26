@@ -1,7 +1,7 @@
 import Redis, { ChainableCommander, RedisOptions } from 'ioredis'
 import { RedisStream } from './stream.js'
 import mkDebug from 'debug'
-import { XBatchResult, XStreamResult, env } from './types.js'
+import { XStreamResult, env } from './types.js'
 
 const debug = mkDebug('redis-x-stream')
 
@@ -16,8 +16,15 @@ function isNumber(num: number | string | undefined): num is number {
 export async function readAckDelete(
   stream: RedisStream
 ): Promise<IterableIterator<XStreamResult> | undefined> {
-  const pipeline = stream.client.pipeline(),
-    read = stream.group ? xreadgroup : xread
+  const pipeline = stream.client.pipeline()
+
+  if (stream.draining) {
+    ack(pipeline, stream)
+    await pipeline.exec()
+    return
+  }
+
+  const read = stream.group ? xreadgroup : xread
   xgroup(pipeline, stream)
   ack(pipeline, stream)
   read(pipeline, stream)
@@ -27,17 +34,17 @@ export async function readAckDelete(
     return
   }
 
-  //TODO: NOGROUP the consumer group this client was blocked on no longer exists
+  //TODO: FATAL - NOGROUP the consumer group this client was blocked on no longer exists
   for (const result of responses) {
     if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
       throw responses[0]
     }
   }
-  const result = responses[responses.length - 1][1] as XBatchResult | null
+  const result = responses[responses.length - 1][1] as XStreamResult[] | null
   if (!result) {
     return
   }
-  if (read === xreadgroup) {
+  if (stream.group) {
     for (const stream of result) {
       if (stream[1].length) {
         return result[Symbol.iterator]()
@@ -48,7 +55,10 @@ export async function readAckDelete(
   }
 }
 
-function ack(client: ChainableCommander, { deleteOnAck, pendingAcks, group }: RedisStream): void {
+export function ack(
+  client: ChainableCommander,
+  { deleteOnAck, pendingAcks, group }: RedisStream
+): void {
   if (!group || !pendingAcks.size) return
   for (const [stream, ids] of pendingAcks) {
     client.xack(stream, group, ...ids)
@@ -69,38 +79,29 @@ function xread(client: ChainableCommander, { block, count, streams, buffers }: R
   block = block === Infinity ? 0 : block
   const args: Parameters<typeof client['xread']> = ['COUNT', count] as IncrementalParameters
   if (isNumber(block)) args.unshift('BLOCK', block)
+  args.push('STREAMS', ...streams.keys(), ...streams.values())
   debug(`xread ${args.join(' ')}`)
-  client[buffers ? 'xreadBuffer' : 'xread'](
-    ...args,
-    'STREAMS',
-    ...streams.keys(),
-    ...streams.values()
-  )
+  client[buffers ? 'xreadBuffer' : 'xread'](...args)
 }
 
 function xreadgroup(
   client: ChainableCommander,
-  { block, count, group, consumer, noack, streams, buffers }: RedisStream
+  { block, count, first, group, consumer, noack, streams, buffers }: RedisStream
 ): void {
   block = block === Infinity ? 0 : block
   const args: Parameters<typeof client['xreadgroup']> = [
     'GROUP',
     group as string,
     consumer as string,
-    'COUNT',
-    count.toString(),
   ] as IncrementalParameters
+  if (!first) args.push('COUNT', count.toString())
   if (noack) args.push('NOACK')
   if (isNumber(block)) args.push('BLOCK', block.toString())
+  args.push('STREAMS', ...streams.keys(), ...streams.values())
   debug(`xreadgroup ${args.join(' ')}`)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // https://github.com/luin/ioredis/pull/1676#issue-1437398115
-  ;(client as any)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](
-    ...args,
-    'STREAMS',
-    ...streams.keys(),
-    ...streams.values()
-  )
+  ;(client as KindaAny)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](...args)
 }
 
 export function createClient(options?: Redis | string | RedisOptions) {
