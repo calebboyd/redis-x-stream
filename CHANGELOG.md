@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.1.0](https://github.com/calebboyd/redis-x-stream/compare/v3.0.0...v3.1.0) (2022-11-26)
+
+
+### Features
+
+* support addStream and drain during iteration ([e9d3c18](https://github.com/calebboyd/redis-x-stream/commit/e9d3c1832e8ee90966e7f98d3f6c68bbdd9d8859))
+
 # [3.0.0](https://github.com/calebboyd/redis-x-stream/compare/v2.1.0...v3.0.0) (2022-11-20)
 
 
