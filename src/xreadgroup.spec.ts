@@ -1,4 +1,5 @@
-import redisStream from './stream.js'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import redisStream, { RedisStream } from './stream.js'
 import { hostname } from 'os'
 import { drain, hydrateForTest, quit, rand, redisIdRegex, testEntries } from './test.util.spec.js'
 import { RedisClient } from './types.js'
@@ -12,7 +13,7 @@ describe('redis-x-stream xreadgroup', () => {
       if (!streams.has(name)) streams.add(name)
       return name
     }
-  beforeAll(() => (writer = new Redis()))
+  beforeAll(() => void (writer = new Redis()))
   afterAll(() => quit(writer))
 
   beforeEach(() => {
@@ -69,7 +70,6 @@ describe('redis-x-stream xreadgroup', () => {
       }
       expect(asserted).toEqual(true)
       expect(idx).toEqual(testEntries.length)
-      await stream.quit()
     }
   })
   it('should acknowledge entries on iteration', async () => {
@@ -128,11 +128,35 @@ describe('redis-x-stream xreadgroup', () => {
     expect(results.get(streamKey)).toBeUndefined()
   })
 
-  //TODO: test some redis error
+  it('should drain entries', async () => {
+    const streamKey = key('my-stream')
+    //hydrate more than 5
+    const entries = await hydrateForTest(writer, streamKey)
+    //read up to 5 entries max
+    const stream = new RedisStream({
+      streams: [streamKey],
+      count: 5,
+      block: Infinity,
+      group: 'my-group',
+      ackOnIterate: true,
+      deleteOnAck: true,
+    })
+    let i = 0
+    for await (const [streamName, [id, keyvals]] of stream) {
+      if (++i === 3) {
+        void stream.drain()
+      }
+    }
+    const info = (await reader.xinfo('STREAM', [...stream.streams.keys()][0])) as [
+      string,
+      number | string
+    ][]
+    expect(info[1]).toEqual(entries.length - 5)
+    expect(i).toEqual(5)
+  })
 
-  //TODO: xreadgroup + block
+  //TODO: test some redis error
   //TODO: xreadgroup + noack
-  //TODO: explicit COUNT
   //non-iterative calls
   //TODO: xreadgroup + flushPendingAckCount
   //TODO: xreadgroup + flushPendingAckInterval

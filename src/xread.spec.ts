@@ -1,4 +1,5 @@
 import Redis from 'ioredis'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { RedisStream } from './stream.js'
 import { RedisClient } from './types.js'
 import { delay, hydrateForTest, quit, times, testEntries, redisIdRegex } from './test.util.spec.js'
@@ -15,7 +16,6 @@ describe('redis-x-stream xread', () => {
     writer = new Redis()
   })
   afterAll(() => quit(writer))
-
   beforeEach(() => {
     prefix = Math.random().toString(36).slice(6) + '_'
     reader = new Redis()
@@ -76,9 +76,10 @@ describe('redis-x-stream xread', () => {
     const stream = new RedisStream(streamName)
     const values = await hydrateForTest(writer, streamName)
     let ackAttempts = 0
-    for await (const [_, [id, __]] of stream) {
+    for await (const [_, [id]] of stream) {
+      void _
       try {
-        await stream.ack(id)
+        stream.ack(id)
       } catch (e: unknown) {
         if (e instanceof Error) {
           ackAttempts++
@@ -88,6 +89,36 @@ describe('redis-x-stream xread', () => {
     }
     expect(values.length).toBeGreaterThan(1)
     expect(ackAttempts).toBe(values.length)
+  })
+
+  it('should allow adding a stream on a blocked iterable', async () => {
+    const myStream = key('my-stream')
+    const laterStream = key('later-stream')
+    await hydrateForTest(writer, myStream)
+    await hydrateForTest(writer, laterStream)
+    const stream = new RedisStream({ streams: [myStream], block: Infinity })
+    let i = 0
+    for await (const [streamName, _] of stream) {
+      i++
+      if (i === testEntries.length) {
+        expect(streamName).toEqual(myStream)
+        setTimeout(() => {
+          //TODO: expect stream is blocked?
+          stream.addStream(laterStream)
+        })
+      }
+      if (i > testEntries.length) {
+        expect(streamName).toEqual(laterStream)
+      }
+      if (i === testEntries.length * 2) {
+        setTimeout(() => {
+          i++
+          stream.end() //break;
+        })
+      }
+    }
+    //stream will block indefinitely (i++ in the future to assert after loop)
+    expect(i).toEqual(testEntries.length * 2 + 1)
   })
 
   it('should not allow re-iteration (done is set)', async () => {
