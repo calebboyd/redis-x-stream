@@ -45,17 +45,20 @@ If you have a cluster of processes reading redis stream entries you likely want 
 A task processing application may look like the following:
 
 ```javascript
-const control = { /* some control event emitter */ }
+const control = {
+  /* some control event emitter */
+}
 const stream = new RedisStream({
   streams: ['my-stream'],
   group: ' ',
   //eg. k8s StatefulSet hostname. or Cloud Foundry instance index
   consumer: 'tpc_' + process.env.SOME_ORDINAL_IDENTIFIER,
   block: Infinity,
-  count: 10
-  ackOnIterate: true,
+  count: 10,
   deleteOnAck: true,
 })
+const lock = new Semaphore(11)
+const release = lock.release.bind(lock)
 
 control.on('new-source', (streamName) => {
   //Add an additional source stream to a blocked stream.
@@ -66,11 +69,14 @@ control.on('shutdown', async () => {
   await stream.drain()
 })
 
-const lock = new Semaphore(11)
-const release = lock.release.bind(lock)
+async function tryTask(stream, streamName, id, entry) {
+  //...process entry...
+  stream.ack(streamName, id)
+}
+
 for await (const [streamName, [id, keyvals]] of stream) {
   await lock.acquire()
-  tryTask(id, keyvals).finally(release)
+  void tryTask(stream, streamName, id, keyvals).finally(release)
 }
 ```
 
