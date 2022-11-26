@@ -56,10 +56,6 @@ control.on('new-source', (streamName) => {
   //Add an additional source stream to a blocked stream.
   stream.addStream(streamName)
 })
-control.on('end', async () => {
-  //ending the stream will stop the iteration immediately. Leaving items in the PEL (up to COUNT)
-  await stream.end()
-})
 control.on('shutdown', async () => {
   //drain will process all claimed entries (the PEL) and stop iteration
   await stream.drain()
