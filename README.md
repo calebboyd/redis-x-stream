@@ -3,6 +3,11 @@
 An [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/asyncIterator) that emits redis stream entries.
 Requires Redis 5 or greater.
 
+![release](https://badgen.net/github/release/calebboyd/redis-x-stream)
+![license](https://badgen.net/badge/license/MIT/blue)
+
+![test](https://github.com/calebboyd/redis-x-stream/actions/workflows/test.yml/badge.svg
+)
 ## Getting Started
 
 ```javascript
@@ -48,6 +53,7 @@ const stream = new RedisStream({
   //eg. k8s StatefulSet hostname. or Cloud Foundry instance index
   consumer: 'tpc_' + process.env.SOME_ORDINAL_IDENTIFIER,
   block: Infinity,
+  count: 10
   ackOnIterate: true,
   deleteOnAck: true,
 })
@@ -61,11 +67,11 @@ control.on('shutdown', async () => {
   await stream.drain()
 })
 
-
-const semaphore = new Semaphore(10)
+const lock = new Semaphore(11)
+const release = lock.release.bind(lock)
 for await (const [streamName, [id, keyvals]] of stream) {
-  await semaphore.acquire()
-  tryTask(id, keyvals)
+  await lock.acquire()
+  tryTask(id, keyvals).finally(release)
 }
 ```
 

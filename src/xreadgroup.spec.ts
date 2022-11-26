@@ -30,19 +30,19 @@ describe('redis-x-stream xreadgroup', () => {
 
   it('should create a consumer or group if one is not provided', () => {
     const streamKey = key('my-stream'),
-      cstream = redisStream({
+      a = redisStream({
         streams: [streamKey],
         group: 'my-group',
       }),
-      gstream = redisStream({
+      b = redisStream({
         streams: [streamKey],
         consumer: 'my-consumer',
       })
-    expect(cstream.consumer).toEqual(`_xs_c_my-group_${hostname()}`)
-    expect(cstream.group).toEqual('my-group')
-    expect(gstream.group).toEqual('_xs_g_my-consumer')
-    expect(gstream.consumer).toEqual('my-consumer')
-    return Promise.all([cstream.quit(), gstream.quit()])
+    expect(a.consumer).toEqual(`_xs_c_my-group_${hostname()}`)
+    expect(a.group).toEqual('my-group')
+    expect(b.group).toEqual('_xs_g_my-consumer')
+    expect(b.consumer).toEqual('my-consumer')
+    return Promise.all([a.quit(), b.quit()])
   })
 
   it('should automatically create a group', async () => {
@@ -132,6 +132,7 @@ describe('redis-x-stream xreadgroup', () => {
     const streamKey = key('my-stream')
     //hydrate more than 5
     const entries = await hydrateForTest(writer, streamKey)
+    expect(entries.length).toBeGreaterThan(5)
     //read up to 5 entries max
     const stream = new RedisStream({
       streams: [streamKey],
