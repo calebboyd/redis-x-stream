@@ -50,7 +50,7 @@ const control = {
 }
 const stream = new RedisStream({
   streams: ['my-stream'],
-  group: ' ',
+  group: 'my-group',
   //eg. k8s StatefulSet hostname. or Cloud Foundry instance index
   consumer: 'tpc_' + process.env.SOME_ORDINAL_IDENTIFIER,
   block: Infinity,
