@@ -29,8 +29,14 @@ if (typeof process !== 'undefined' && process.env) {
 export interface RedisStreamOptions {
   /**
    * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
+   *
+   *  *alias* for stream
    */
-  streams: string[] | Record<string, string>
+  streams?: string[] | Record<string, string> | string
+  /**
+   * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
+   */
+  stream?: string[] | Record<string, string> | string
   /**
    * The consumer group.
    * Note: if only a group is provided a consumer is created automatically

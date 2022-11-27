@@ -1,5 +1,5 @@
 import { hostname } from 'node:os'
-import { ack, createClient, readAckDelete } from './redis.js'
+import { ack, createClient, initStreams, readAckDelete } from './redis.js'
 import {
   RedisStreamOptions,
   RedisClient,
@@ -11,6 +11,7 @@ import {
 export { RedisStreamOptions }
 
 const allowedKeys = {
+  stream: 1,
   streams: 1,
   group: 1,
   consumer: 1,
@@ -57,8 +58,9 @@ export class RedisStream {
   public done = false
   public first = false
   public draining = false
+  public reading = false
+  public addedStreams: null | Iterable<[string, string]> = null
   private unblocked = false
-  private reading = false
 
   private readerId: number | null = null
   private pendingId: Promise<number | null> | null = null
@@ -94,6 +96,12 @@ export class RedisStream {
       this.block = options.block
     }
 
+    this.streams = new Map([
+      ...initStreams(streams),
+      ...initStreams(options.streams),
+      ...initStreams(options.stream),
+    ])
+
     if (this.block === 0 || this.block === Infinity) {
       this.blocked = true
       const { client, created } = createClient(options.redisControl)
@@ -126,14 +134,6 @@ export class RedisStream {
       this.group = this.group ?? options.group
       this.consumer = this.consumer ?? options.consumer
       this.first = true
-    }
-
-    if (Array.isArray(options.streams)) {
-      this.streams = options.streams.reduce((keys, key) => {
-        return keys.set(key, '0')
-      }, new Map<string, string>())
-    } else {
-      this.streams = new Map(Object.entries(options.streams))
     }
 
     if (typeof options.count === 'number') {
@@ -247,8 +247,10 @@ export class RedisStream {
     }
   }
 
-  public async addStream(streamName: string) {
-    this.streams.set(streamName, '0')
+  public async addStream(streams: RedisStreamOptions['streams'] | string) {
+    this.addedStreams = this.addedStreams
+      ? [...this.addedStreams, ...initStreams(streams)]
+      : initStreams(streams)
     await this.maybeUnblock()
   }
 

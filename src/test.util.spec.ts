@@ -1,7 +1,13 @@
 import { RedisClient, StreamEntry, XEntryResult } from './types.js'
+import { afterAll } from 'vitest'
 import mkDebug from 'debug'
+import { randomInt } from 'node:crypto'
+import Chance from 'chance'
 
-const debug = mkDebug('redis-x-stream')
+const seed = Number(process.env.TEST_SEED) || randomInt(Date.now())
+const chance = new Chance(seed)
+
+const debug = mkDebug('test-redis-x-stream')
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms)),
   times = <T>(count: number, fn: (_: undefined, i: number) => T): Array<T> =>
@@ -10,8 +16,8 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
     await client.quit()
     return new Promise((resolve) => client.once('end', resolve))
   },
-  randNum = (min: number, max: number) => Math.floor(Math.random() * (max - min) + min),
-  rand = (): string => Math.random().toString(36).slice(6),
+  randNum = (min: number, max: number) => chance.integer({ min, max }),
+  rand = (): string => chance.string({}),
   drain = async (iterable: AsyncIterable<XEntryResult>): Promise<Map<string, StreamEntry[]>> => {
     const results = new Map<string, StreamEntry[]>()
     for await (const [streamName, entry] of iterable) {
@@ -34,4 +40,8 @@ async function hydrateForTest(writer: RedisClient, stream: string, ...values: st
   return values
 }
 
-export { delay, times, quit, hydrateForTest, rand, testEntries, redisIdRegex, drain }
+afterAll(() => {
+  console.log(`Seed set to: ${seed}`)
+})
+
+export { delay, times, quit, hydrateForTest, rand, randNum, testEntries, redisIdRegex, drain }

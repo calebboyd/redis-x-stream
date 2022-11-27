@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import Redis from 'ioredis'
-import redisStream from './stream'
 import { rand } from './test.util.spec'
+import redisStream from './stream'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JustForTests = any

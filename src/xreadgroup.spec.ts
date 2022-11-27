@@ -1,9 +1,9 @@
+import Redis from 'ioredis'
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
-import redisStream, { RedisStream } from './stream.js'
 import { hostname } from 'os'
 import { drain, hydrateForTest, quit, rand, redisIdRegex, testEntries } from './test.util.spec.js'
+import redisStream, { RedisStream } from './stream.js'
 import { RedisClient } from './types.js'
-import Redis from 'ioredis'
 
 describe('redis-x-stream xreadgroup', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string
@@ -143,7 +143,7 @@ describe('redis-x-stream xreadgroup', () => {
       deleteOnAck: true,
     })
     let i = 0
-    for await (const [streamName, [id, keyvals]] of stream) {
+    for await (const _ of stream) {
       if (++i === 3) {
         void stream.drain()
       }

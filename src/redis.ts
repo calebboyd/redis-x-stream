@@ -1,7 +1,7 @@
 import Redis, { ChainableCommander, RedisOptions } from 'ioredis'
 import { RedisStream } from './stream.js'
 import mkDebug from 'debug'
-import { XStreamResult, env } from './types.js'
+import { XStreamResult, env, RedisStreamOptions } from './types.js'
 
 const debug = mkDebug('redis-x-stream')
 
@@ -67,7 +67,17 @@ export function ack(
   pendingAcks.clear()
 }
 
-function xgroup(client: ChainableCommander, { group, streams, first }: RedisStream): void {
+function xgroup(client: ChainableCommander, stream: RedisStream): void {
+  const { group, streams, first, addedStreams } = stream
+  if (addedStreams) {
+    for (const [key, start] of addedStreams) {
+      streams.set(key, start)
+      if (group && !first) {
+        client.xgroup('CREATE', key, group, start, 'MKSTREAM')
+      }
+    }
+    stream.addedStreams = null
+  }
   if (!first || !group) return
   for (const [key, start] of streams) {
     debug(`xgroup create ${key} ${group} ${start} mkstream`)
@@ -104,10 +114,25 @@ function xreadgroup(
   ;(client as KindaAny)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](...args)
 }
 
+export function* initStreams(
+  streams: RedisStreamOptions['streams'] | string
+): Iterable<[string, string]> {
+  if (typeof streams === 'string') streams = [streams]
+  if (Array.isArray(streams)) {
+    for (const stream of streams) {
+      yield [stream, '0']
+    }
+  } else if (streams) {
+    yield* Object.entries(streams)
+  } else {
+    return
+  }
+}
+
 export function createClient(options?: Redis | string | RedisOptions) {
   let client: Redis,
     created = true
-  if (typeof options === 'object') {
+  if (options && typeof options === 'object') {
     if ('pipeline' in options) {
       client = options
       created = false

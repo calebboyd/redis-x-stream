@@ -1,8 +1,15 @@
 import Redis from 'ioredis'
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import {
+  delay,
+  hydrateForTest,
+  quit,
+  testEntries,
+  redisIdRegex,
+  randNum,
+} from './test.util.spec.js'
 import { RedisStream } from './stream.js'
 import { RedisClient } from './types.js'
-import { delay, hydrateForTest, quit, times, testEntries, redisIdRegex } from './test.util.spec.js'
 
 describe('redis-x-stream xread', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string
@@ -28,8 +35,8 @@ describe('redis-x-stream xread', () => {
     return quit(reader)
   })
   it('should dispense entries', async () => {
-    const streamName = key('my-straam'),
-      iterable = new RedisStream(streamName)
+    const streamName = key('my-stream'),
+      iterable = new RedisStream({ stream: streamName, count: randNum(1, 20) })
     await hydrateForTest(writer, streamName, ...testEntries)
     let entryIdx = 0,
       asserted = false
@@ -47,33 +54,25 @@ describe('redis-x-stream xread', () => {
   it('should block waiting for new entries', async () => {
     let entries = 0
     const streamName = key('my-stream'),
-      redisIdRegex = /\d+-\d/,
       block = 200,
       iterable = new RedisStream({
         block,
+        count: randNum(1, 50),
         streams: [streamName],
-      }),
-      hydrate = () => hydrateForTest(writer, streamName),
-      iterate = async () => {
-        for await (const [str, entry] of iterable) {
-          entries++
-          expect(str).toEqual(streamName)
-          expect(entry[0]).toMatch(redisIdRegex)
-        }
-      }
+      })
+    const hydrate = () => hydrateForTest(writer, streamName)
     await hydrate()
-    const consuming = iterate()
-    await delay(block)
-    times(9, hydrate)
-    await delay(block)
-    times(10, hydrate)
-    await consuming
-    expect(entries).toEqual(testEntries.length * 20)
+    for await (const _ of iterable) {
+      if (entries++ === testEntries.length - 1) {
+        delay(block - 20).then(hydrate)
+      }
+    }
+    expect(entries).toEqual(testEntries.length * 2)
   })
 
   it('should throw if ack is called without a group or consumer', async () => {
     const streamName = key('my-stream')
-    const stream = new RedisStream(streamName)
+    const stream = new RedisStream({ stream: [streamName], count: randNum(1, 500) })
     const values = await hydrateForTest(writer, streamName)
     let ackAttempts = 0
     for await (const [_, [id]] of stream) {
@@ -96,25 +95,29 @@ describe('redis-x-stream xread', () => {
     const laterStream = key('later-stream')
     await hydrateForTest(writer, myStream)
     await hydrateForTest(writer, laterStream)
-    const stream = new RedisStream({ streams: [myStream], block: Infinity })
+    const stream = new RedisStream({
+      streams: [myStream],
+      block: Infinity,
+      count: randNum(300, 400),
+    })
     let i = 0
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
         setTimeout(() => {
-          //TODO: expect stream is blocked?
+          expect(stream.reading).toBe(true)
           stream.addStream(laterStream)
         })
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
-      if (i === testEntries.length * 2) {
+      if (i === testEntries.length * 2 - 1) {
         setTimeout(() => {
           i++
           stream.end() //break;
-        })
+        }, 100)
       }
     }
     //stream will block indefinitely (i++ in the future to assert after loop)
@@ -123,7 +126,7 @@ describe('redis-x-stream xread', () => {
 
   it('should not allow re-iteration (done is set)', async () => {
     const streamName = key('my-stream'),
-      iterable = new RedisStream(streamName)
+      iterable = new RedisStream({ stream: streamName, count: randNum(1, 2) })
     let entries = 0
     const values = await hydrateForTest(writer, streamName)
     const iterate = async () => {
