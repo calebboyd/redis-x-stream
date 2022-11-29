@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.2](https://github.com/calebboyd/redis-x-stream/compare/v3.1.1...v3.1.2) (2022-11-29)
+
+
+### Bug Fixes
+
+* handle added stream group creation ([0fac64a](https://github.com/calebboyd/redis-x-stream/commit/0fac64a3db0f99fcbf31027befd5ddd22bade636))
+
 ## [3.1.1](https://github.com/calebboyd/redis-x-stream/compare/v3.1.0...v3.1.1) (2022-11-26)
 
 
