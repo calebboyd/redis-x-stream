@@ -1,7 +1,7 @@
 {
   "name": "redis-x-stream",
   "description": "An async iterable interface for redis streams",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "license": "MIT",
   "keywords": [
     "queue",

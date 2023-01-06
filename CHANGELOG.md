@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.1.3](https://github.com/calebboyd/redis-x-stream/compare/v3.1.2...v3.1.3) (2023-01-06)
+
+
+### Bug Fixes
+
+* add legacy main field ([8383e0b](https://github.com/calebboyd/redis-x-stream/commit/8383e0b19d764df8acf942cc6115311f352a978a))
+
 ## [3.1.2](https://github.com/calebboyd/redis-x-stream/compare/v3.1.1...v3.1.2) (2022-11-29)
 
 
