@@ -268,6 +268,21 @@ export class RedisStream {
     await this.maybeUnblock()
   }
 
+  public async flush(client?: RedisClient) {
+    if (!this.pendingAcks.size) return
+    let c = client
+    if (!this.done) {
+      c = c ?? this.control ? this.control : this.client
+    }
+    if (this.done && !this.createdConnection) {
+      c = c ?? this.client
+    }
+    if (!c) throw new Error('No suitable client')
+    const pipeline = c.pipeline()
+    ack(pipeline, this)
+    await pipeline.exec()
+  }
+
   protected async return(): Promise<void> {
     await this.quit()
   }
