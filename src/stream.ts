@@ -1,6 +1,6 @@
 import { hostname } from 'node:os'
 import { ack, createClient, initStreams, readAckDelete } from './redis.js'
-import {
+import type {
   RedisStreamOptions,
   RedisClient,
   XEntryResult,

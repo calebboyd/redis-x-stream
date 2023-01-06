@@ -32,6 +32,8 @@
     "lib",
     "!**/*.spec.js"
   ],
+  "main": "./lib/commonjs/stream.js",
+  "types": "./lib/commonjs/stream.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
