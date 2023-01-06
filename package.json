@@ -37,10 +37,8 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "node": {
-        "import": "./lib/es2018/stream.js",
-        "require": "./lib/commonjs/stream.js"
-      }
+      "import": "./lib/es2018/stream.js",
+      "require": "./lib/commonjs/stream.js"
     }
   },
   "type": "module",
