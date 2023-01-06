@@ -212,6 +212,12 @@ export class RedisStream {
   public async quit(): Promise<void> {
     if (!this.done) {
       this.done = true
+      if (this.pendingAcks.size || this.readerId) {
+        const pipeline = (this.control ? this.control : this.client).pipeline()
+        this.pendingAcks.size && ack(pipeline, this)
+        this.readerId && pipeline.client('UNBLOCK', this.readerId)
+        await pipeline.exec()
+      }
       if (!(this.createdConnection || this.createdControlConnection)) return
       await Promise.all([
         this.createdConnection && new Promise((resolve) => this.client.once('end', resolve)),
@@ -260,20 +266,6 @@ export class RedisStream {
   public async drain() {
     this.draining = true
     await this.maybeUnblock()
-  }
-
-  /**
-   * Immediately stop processing entries
-   */
-  public async end() {
-    if (this.control && this.readerId) {
-      const pipeline = this.control.pipeline()
-      ack(pipeline, this)
-      pipeline.client('UNBLOCK', this.readerId)
-      await Promise.all([pipeline.exec(), this.quit()])
-    } else {
-      await this.quit()
-    }
   }
 
   protected async return(): Promise<void> {

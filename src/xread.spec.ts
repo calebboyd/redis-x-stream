@@ -116,7 +116,7 @@ describe('redis-x-stream xread', () => {
       if (i === testEntries.length * 2 - 1) {
         setTimeout(() => {
           i++
-          stream.end() //break;
+          stream.quit() //break;
         }, 100)
       }
     }
