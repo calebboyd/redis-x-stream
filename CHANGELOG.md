@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [3.2.0](https://github.com/calebboyd/redis-x-stream/compare/v3.1.5...v3.2.0) (2023-01-06)
+
+
+### Features
+
+* add flush for consuming stream outside of blocked mode ([a89c7f2](https://github.com/calebboyd/redis-x-stream/commit/a89c7f2a5c909e00a8ee0a0aa32c18398978ded5))
+
 ## [3.1.5](https://github.com/calebboyd/redis-x-stream/compare/v3.1.4...v3.1.5) (2023-01-06)
 
 
