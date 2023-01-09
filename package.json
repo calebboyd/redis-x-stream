@@ -46,7 +46,7 @@
     "debug": "^4.3.4"
   },
   "peerDependencies": {
-    "ioredis": "^5.2.4"
+    "ioredis": "^5.2.0 || ^4.27.0"
   },
   "devDependencies": {
     "@calebboyd/semantic-release-config": "^1.0.1",
