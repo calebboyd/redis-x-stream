@@ -1,7 +1,7 @@
 import { RedisClient, StreamEntry, XEntryResult } from './types.js'
 import { afterAll } from 'vitest'
 import mkDebug from 'debug'
-import { randomInt } from 'node:crypto'
+import { randomInt } from 'crypto'
 import Chance from 'chance'
 
 const seed = Number(process.env.TEST_SEED) || randomInt(Date.now())

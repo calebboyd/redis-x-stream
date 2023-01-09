@@ -1,4 +1,4 @@
-import { hostname } from 'node:os'
+import { hostname } from 'os'
 import { ack, createClient, initStreams, readAckDelete } from './redis.js'
 import type {
   RedisStreamOptions,
@@ -8,7 +8,7 @@ import type {
   StreamEntry,
 } from './types.js'
 
-export { RedisStreamOptions }
+export { RedisStreamOptions, RedisClient, RedisOptions } from './types'
 
 const allowedKeys = {
   stream: 1,
@@ -268,6 +268,11 @@ export class RedisStream {
     await this.maybeUnblock()
   }
 
+  /**
+   * Flush any acknowledgements that were added potentially after the stream finished.
+   * @param client
+   * @returns
+   */
   public async flush(client?: RedisClient) {
     if (!this.pendingAcks.size) return
     let c = client

@@ -16,7 +16,8 @@ export type XEntryBufferResult = [StreamKey, StreamEntryKeyValueBuffers]
 export type XStreamResultBuffer = [StreamKey, StreamEntryKeyValueBuffers[]]
 export type XBatchResultBuffer = XStreamResult[]
 
-export { Redis as RedisClient }
+export type RedisClient = Redis
+export { RedisOptions }
 
 export class RedisStreamAbortedError extends Error {
   message = 'RedisStream Aborted with unprocessed results'
@@ -51,13 +52,13 @@ export interface RedisStreamOptions {
    * The IORedis client connection (reader).
    * NOTE: by default this connection becomes a "reader" when block > 0
    */
-  redis?: Redis | string | RedisOptions
+  redis?: RedisClient | string | RedisOptions
   /**
    * The IORedis control client connection (writer).
    * NOTE: by default this connection becomes a "writer" when block = 0 or Infinity
    * Only allowed if block = 0 or Infinity
    */
-  redisControl?: Redis | string | RedisOptions
+  redisControl?: RedisClient | string | RedisOptions
   /**
    * Return buffers with each xread operation
    * This applies to entry id and kv results
