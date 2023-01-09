@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.2.1](https://github.com/calebboyd/redis-x-stream/compare/v3.2.0...v3.2.1) (2023-01-09)
+
+
+### Bug Fixes
+
+* remove node module uri prefix ([4c809d2](https://github.com/calebboyd/redis-x-stream/commit/4c809d27ff12d525edc2b7c87c65bf28e8d04199))
+
 # [3.2.0](https://github.com/calebboyd/redis-x-stream/compare/v3.1.5...v3.2.0) (2023-01-06)
 
 
