@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.2.2](https://github.com/calebboyd/redis-x-stream/compare/v3.2.1...v3.2.2) (2023-01-09)
+
+
+### Bug Fixes
+
+* make ioredis a peer dep ([a0d2ed2](https://github.com/calebboyd/redis-x-stream/commit/a0d2ed2acb08362e467c8a9d8bf60504770da3fd))
+
 ## [3.2.1](https://github.com/calebboyd/redis-x-stream/compare/v3.2.0...v3.2.1) (2023-01-09)
 
 
