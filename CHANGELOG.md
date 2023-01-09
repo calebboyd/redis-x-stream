@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [3.2.3](https://github.com/calebboyd/redis-x-stream/compare/v3.2.2...v3.2.3) (2023-01-09)
+
+
+### Bug Fixes
+
+* broader ioredis version range ([cc2a18c](https://github.com/calebboyd/redis-x-stream/commit/cc2a18c3f46bf96d919fd19801dfd528cd5fa18f))
+
 ## [3.2.2](https://github.com/calebboyd/redis-x-stream/compare/v3.2.1...v3.2.2) (2023-01-09)
 
 
