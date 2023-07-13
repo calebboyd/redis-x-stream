@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c
         with:
-          node-version: 18
+          node-version: 20
       - name: Install Dependencies
         run: npm ci
       - name: Release
@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [14, 16, 18, 19]
+        node: [14, 16, 18, 20]
     services:
       redis:
         image: redis
@@ -48,4 +48,3 @@ jobs:
         run: npm ci
       - name: Test
         run: npm run test
-
