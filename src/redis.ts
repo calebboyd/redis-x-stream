@@ -36,7 +36,7 @@ export async function readAckDelete(
 
   //TODO: FATAL - NOGROUP the consumer group this client was blocked on no longer exists
   for (const result of responses) {
-    if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
+    if (result[0] && !result[0].message.startsWith('BUSYGROUP')) {
       throw responses[0]
     }
   }

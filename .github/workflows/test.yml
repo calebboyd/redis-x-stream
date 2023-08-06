@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [14, 16, 18, 19]
+        node: [14, 16, 18, 20]
     services:
       redis:
         image: redis
@@ -48,4 +48,3 @@ jobs:
         run: npm ci
       - name: Test
         run: npm run test
-
