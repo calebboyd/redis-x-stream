@@ -1,14 +1,44 @@
 import { hostname } from 'os'
+import { EventEmitter } from 'events'
 import { ack, createClient, initStreams, readAckDelete } from './redis.js'
 import type {
   RedisStreamOptions,
   RedisClient,
-  XEntryResult,
+  RedisStreamEvents,
+  ParseFn,
+  StreamEntryId,
+  StreamEntryKeyValues,
+  StreamKey,
   XStreamResult,
   StreamEntry,
+  StreamInfo,
+  GroupInfo,
+  ConsumerInfo,
+  PendingSummary,
 } from './types.js'
 
-export { RedisStreamOptions, RedisClient, RedisOptions } from './types'
+export {
+  RedisStreamOptions,
+  RedisClient,
+  RedisOptions,
+  ParseFn,
+  StreamInfo,
+  GroupInfo,
+  ConsumerInfo,
+  PendingSummary,
+  RedisStreamEvents,
+} from './types'
+
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+function kvToObject<T>(arr: any[]): T {
+  const obj: Record<string, unknown> = {}
+  for (let i = 0; i < arr.length; i += 2) {
+    const key = String(arr[i]).replace(/-/g, '_')
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+    obj[camel] = arr[i + 1]
+  }
+  return obj as T
+}
 
 const allowedKeys = {
   stream: 1,
@@ -23,11 +53,13 @@ const allowedKeys = {
   deleteOnAck: 1,
   noack: 1,
   flushPendingAckInterval: 1,
+  claimIdleTime: 1,
+  parse: 1,
   redisControl: 1,
 }
 const hasOwn = {}.hasOwnProperty
 
-export class RedisStream {
+export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
   public readonly client: RedisClient
   public readonly control?: RedisClient
   public readonly group?: string
@@ -45,6 +77,8 @@ export class RedisStream {
   public ackOnIterate = false
   public deleteOnAck = false
   public flushPendingAckInterval: number | null = null
+  public claimIdleTime: number | null = null
+  private parseFn?: ParseFn<T>
 
   //state
   /**
@@ -62,6 +96,7 @@ export class RedisStream {
   public reading = false
   public addedStreams: null | Iterable<[string, string]> = null
   public pelDrainStreams: Set<string> | null = null
+  public claimCursors = new Map<string, string>()
   private unblocked = false
   private flushTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -84,7 +119,8 @@ export class RedisStream {
    */
   private createdControlConnection = false
 
-  constructor(options: RedisStreamOptions | string, ...streams: string[]) {
+  constructor(options: RedisStreamOptions<T> | string, ...streams: string[]) {
+    super()
     if (typeof options === 'string') {
       streams.unshift(options)
       options = { streams }
@@ -112,7 +148,7 @@ export class RedisStream {
       this.createdControlConnection = created
     } else if (options.redisControl) {
       throw new Error(
-        'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`'
+        'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`',
       )
     }
 
@@ -120,10 +156,17 @@ export class RedisStream {
     this.createdConnection = created
     this.client = client
 
+    // Forward ioredis connection events so consumers can observe
+    // connection health without accessing the underlying client.
+    this.client.on('error', (err: Error) => this.emit('error', err))
+    this.client.on('ready', () => this.emit('ready'))
+    this.client.on('close', () => this.emit('close'))
+    this.client.on('reconnecting', () => this.emit('reconnecting'))
+
     if (this.blocked) {
       this.pendingId = this.client.client('ID').then(
         (id) => (this.readerId = id),
-        () => (this.pendingId = this.readerId = null)
+        () => (this.pendingId = this.readerId = null),
       )
     }
 
@@ -162,9 +205,95 @@ export class RedisStream {
     if (typeof options.flushPendingAckInterval === 'number') {
       this.flushPendingAckInterval = options.flushPendingAckInterval
     }
+
+    if (typeof options.claimIdleTime === 'number') {
+      this.claimIdleTime = options.claimIdleTime
+    }
+
+    if (options.parse) {
+      this.parseFn = options.parse
+    }
   }
 
-  async *[Symbol.asyncIterator](): AsyncIterator<XEntryResult> {
+  // ---- Observability methods (XINFO / XPENDING wrappers) ----
+
+  /**
+   * Returns stream metadata via XINFO STREAM for each configured stream.
+   */
+  public async info(): Promise<Map<string, StreamInfo>> {
+    const c = this.control ?? this.client
+    const out = new Map<string, StreamInfo>()
+    for (const [key] of this.streams) {
+      //eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = (await c.xinfo('STREAM', key)) as any[]
+      out.set(key, kvToObject<StreamInfo>(raw))
+    }
+    return out
+  }
+
+  /**
+   * Returns consumer group information via XINFO GROUPS for the given stream
+   * (or the first configured stream if omitted).
+   */
+  public async groups(stream?: string): Promise<GroupInfo[]> {
+    const key = stream ?? [...this.streams.keys()][0]
+    const c = this.control ?? this.client
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = (await c.xinfo('GROUPS', key)) as any[][]
+    return raw.map((g) => kvToObject<GroupInfo>(g))
+  }
+
+  /**
+   * Returns consumer information via XINFO CONSUMERS for the configured
+   * group on the given stream (or the first configured stream if omitted).
+   */
+  public async consumers(stream?: string): Promise<ConsumerInfo[]> {
+    if (!this.group) throw new Error('consumers() requires a consumer group')
+    const key = stream ?? [...this.streams.keys()][0]
+    const c = this.control ?? this.client
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = (await c.xinfo('CONSUMERS', key, this.group)) as any[][]
+    return raw.map((g) => kvToObject<ConsumerInfo>(g))
+  }
+
+  /**
+   * Returns the XPENDING summary for the configured group on the given
+   * stream (or the first configured stream if omitted).
+   */
+  public async pending(stream?: string): Promise<PendingSummary> {
+    if (!this.group) throw new Error('pending() requires a consumer group')
+    const key = stream ?? [...this.streams.keys()][0]
+    const c = this.control ?? this.client
+    //eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = (await c.xpending(key, this.group)) as any[]
+    return {
+      count: raw[0] as number,
+      minId: raw[1] as string | null,
+      maxId: raw[2] as string | null,
+      consumers: ((raw[3] as [string, string][] | null) ?? []).map(([name, count]) => ({
+        name,
+        count: Number(count),
+      })),
+    }
+  }
+
+  // ---- Type-safe event emitter overrides ----
+
+  public override on<K extends keyof RedisStreamEvents>(
+    event: K,
+    listener: RedisStreamEvents[K],
+  ): this {
+    return super.on(event, listener)
+  }
+
+  public override emit<K extends keyof RedisStreamEvents>(
+    event: K,
+    ...args: Parameters<RedisStreamEvents[K]>
+  ): boolean {
+    return super.emit(event, ...args)
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<[StreamKey, [StreamEntryId, T]]> {
     const itr = this.itr
     try {
       while (true) {
@@ -212,7 +341,13 @@ export class RedisStream {
           const pelDrain = this.pelDrainStreams?.has(itr.name)
           this.streams.set(itr.name, this.group && !pelDrain ? '>' : result.value[0].toString())
           if (this.ackOnIterate) itr.prev = result.value
-          yield [itr.name, result.value]
+          const entry: [StreamEntryId, T] = this.parseFn
+            ? [
+                result.value[0],
+                this.parseFn(result.value[0].toString(), result.value[1] as string[], itr.name),
+              ]
+            : (result.value as unknown as [StreamEntryId, T])
+          yield [itr.name, entry]
         }
       }
     } finally {
@@ -329,9 +464,9 @@ export class RedisStream {
   }
 }
 
-export default function createRedisStream(
-  options: RedisStreamOptions | string,
+export default function createRedisStream<T = StreamEntryKeyValues>(
+  options: RedisStreamOptions<T> | string,
   ...streams: string[]
-): RedisStream {
-  return new RedisStream(options, ...streams)
+): RedisStream<T> {
+  return new RedisStream<T>(options, ...streams)
 }

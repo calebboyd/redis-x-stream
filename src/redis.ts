@@ -1,7 +1,7 @@
 import Redis, { ChainableCommander, RedisOptions } from 'ioredis'
 import { RedisStream } from './stream.js'
 import mkDebug from 'debug'
-import { XStreamResult, env, RedisStreamOptions } from './types.js'
+import { XStreamResult, StreamEntry, env, RedisStreamOptions } from './types.js'
 
 const debug = mkDebug('redis-x-stream')
 
@@ -13,8 +13,17 @@ function isNumber(num: number | string | undefined): num is number {
   return typeof num === 'number' && !Number.isNaN(num)
 }
 
+function* combineResults(
+  claimed: XStreamResult[],
+  read?: IterableIterator<XStreamResult>,
+): IterableIterator<XStreamResult> {
+  yield* claimed
+  if (read) yield* read
+}
+
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function readAckDelete(
-  stream: RedisStream
+  stream: RedisStream<any>,
 ): Promise<IterableIterator<XStreamResult> | undefined> {
   const pipeline = stream.client.pipeline()
 
@@ -27,6 +36,15 @@ export async function readAckDelete(
   const read = stream.group ? xreadgroup : xread
   xgroup(pipeline, stream)
   ack(pipeline, stream)
+
+  // Claim idle entries from other consumers.  Skipped on the first read
+  // (the PEL read at '0' already covers this consumer's own entries) and
+  // when not in group mode.
+  const claimKeys =
+    stream.claimIdleTime != null && stream.group && !stream.first
+      ? xautoclaim(pipeline, stream)
+      : []
+
   read(pipeline, stream)
   const responses = await pipeline.exec()
 
@@ -42,6 +60,23 @@ export async function readAckDelete(
       throw result[0]
     }
   }
+
+  // Parse XAUTOCLAIM results (positioned before the final XREADGROUP response)
+  const claimed: XStreamResult[] = []
+  if (claimKeys.length) {
+    const claimStart = responses.length - 1 - claimKeys.length
+    for (let i = 0; i < claimKeys.length; i++) {
+      const [err, res] = responses[claimStart + i]
+      if (err) continue
+      const [nextCursor, entries] = res as [string, StreamEntry[]]
+      stream.claimCursors.set(claimKeys[i], nextCursor)
+      if (entries?.length) {
+        claimed.push([claimKeys[i], entries])
+      }
+    }
+  }
+
+  // XREADGROUP / XREAD result is always the last pipeline response
   const result = responses[responses.length - 1][1] as XStreamResult[] | null
 
   // Check if any PEL-draining streams have been fully drained.
@@ -71,25 +106,36 @@ export async function readAckDelete(
     }
   }
 
-  if (!result) {
-    if (transitioned) return readAckDelete(stream)
-    return
-  }
-  if (stream.group) {
-    for (const s of result) {
-      if (s[1].length) {
-        return result[Symbol.iterator]()
+  // Determine if XREADGROUP produced entries
+  let readItr: IterableIterator<XStreamResult> | undefined
+  if (result) {
+    if (stream.group) {
+      for (const s of result) {
+        if (s[1].length) {
+          readItr = result[Symbol.iterator]()
+          break
+        }
       }
+    } else {
+      readItr = result[Symbol.iterator]()
     }
-    if (transitioned) return readAckDelete(stream)
-  } else {
-    return result[Symbol.iterator]()
   }
+
+  // Return claimed + read results, or just one, or retry/quit
+  if (claimed.length) {
+    return combineResults(claimed, readItr)
+  }
+  if (readItr) {
+    return readItr
+  }
+  if (transitioned) return readAckDelete(stream)
+  return
 }
 
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ack(
   client: ChainableCommander,
-  { deleteOnAck, pendingAcks, group }: RedisStream
+  { deleteOnAck, pendingAcks, group }: RedisStream<any>,
 ): void {
   if (!group || !pendingAcks.size) return
   for (const [stream, ids] of pendingAcks) {
@@ -99,7 +145,8 @@ export function ack(
   pendingAcks.clear()
 }
 
-function xgroup(client: ChainableCommander, stream: RedisStream): void {
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+function xgroup(client: ChainableCommander, stream: RedisStream<any>): void {
   const { group, streams, first, addedStreams } = stream
   if (addedStreams) {
     for (const [key, start] of addedStreams) {
@@ -124,9 +171,13 @@ function xgroup(client: ChainableCommander, stream: RedisStream): void {
   }
 }
 
-function xread(client: ChainableCommander, { block, count, streams, buffers }: RedisStream): void {
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+function xread(
+  client: ChainableCommander,
+  { block, count, streams, buffers }: RedisStream<any>,
+): void {
   block = block === Infinity ? 0 : block
-  const args: Parameters<typeof client['xread']> = ['COUNT', count] as IncrementalParameters
+  const args: Parameters<(typeof client)['xread']> = ['COUNT', count] as IncrementalParameters
   if (isNumber(block)) args.unshift('BLOCK', block)
   args.push('STREAMS', ...streams.keys(), ...streams.values())
   debug(`xread ${args.join(' ')}`)
@@ -135,10 +186,11 @@ function xread(client: ChainableCommander, { block, count, streams, buffers }: R
 
 function xreadgroup(
   client: ChainableCommander,
-  { block, count, first, group, consumer, noack, streams, buffers }: RedisStream
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { block, count, first, group, consumer, noack, streams, buffers }: RedisStream<any>,
 ): void {
   block = block === Infinity ? 0 : block
-  const args: Parameters<typeof client['xreadgroup']> = [
+  const args: Parameters<(typeof client)['xreadgroup']> = [
     'GROUP',
     group as string,
     consumer as string,
@@ -153,8 +205,31 @@ function xreadgroup(
   ;(client as KindaAny)[buffers ? 'xreadgroupBuffer' : 'xreadgroup'](...args)
 }
 
+function xautoclaim(
+  client: ChainableCommander,
+  //eslint-disable-next-line @typescript-eslint/no-explicit-any
+  { group, consumer, claimIdleTime, count, streams, claimCursors }: RedisStream<any>,
+): string[] {
+  const keys: string[] = []
+  for (const [key] of streams) {
+    const cursor = claimCursors.get(key) ?? '0-0'
+    debug(`xautoclaim ${key} ${group} ${consumer} ${claimIdleTime} ${cursor} COUNT ${count}`)
+    client.xautoclaim(
+      key,
+      group as string,
+      consumer as string,
+      claimIdleTime as number,
+      cursor,
+      'COUNT',
+      count,
+    )
+    keys.push(key)
+  }
+  return keys
+}
+
 export function* initStreams(
-  streams: RedisStreamOptions['streams'] | string
+  streams: RedisStreamOptions['streams'] | string,
 ): Iterable<[string, string]> {
   if (typeof streams === 'string') streams = [streams]
   if (Array.isArray(streams)) {

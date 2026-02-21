@@ -23,11 +23,60 @@ export class RedisStreamAbortedError extends Error {
   message = 'RedisStream Aborted with unprocessed results'
 }
 
+// ---- XINFO / XPENDING result types ----
+
+export interface StreamInfo {
+  length: number
+  radixTreeKeys: number
+  radixTreeNodes: number
+  lastGeneratedId: string
+  maxDeletedEntryId: string
+  entriesAdded: number
+  recordedFirstEntryId: string
+  groups: number
+  firstEntry: StreamEntry | null
+  lastEntry: StreamEntry | null
+}
+
+export interface GroupInfo {
+  name: string
+  consumers: number
+  pending: number
+  lastDeliveredId: string
+  entriesRead: number | null
+  lag: number | null
+}
+
+export interface ConsumerInfo {
+  name: string
+  pending: number
+  idle: number
+  inactive: number
+}
+
+export interface PendingSummary {
+  count: number
+  minId: string | null
+  maxId: string | null
+  consumers: { name: string; count: number }[]
+}
+
+// ---- Event types ----
+
+export interface RedisStreamEvents {
+  error: (error: Error) => void
+  ready: () => void
+  close: () => void
+  reconnecting: () => void
+}
+
 export const env: { REDIS_X_STREAM_URL?: string } = {}
 if (typeof process !== 'undefined' && process.env) {
   env.REDIS_X_STREAM_URL = process.env.REDIS_X_STREAM_URL
 }
-export interface RedisStreamOptions {
+export type ParseFn<T> = (id: StreamEntryId, kv: StreamEntryKeyValues, stream: StreamKey) => T
+
+export interface RedisStreamOptions<T = StreamEntryKeyValues> {
   /**
    * Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
    *
@@ -101,4 +150,22 @@ export interface RedisStreamOptions {
    * Set to `null` (default) to disable the timer.
    */
   flushPendingAckInterval?: number | null
+  /**
+   * Minimum idle time in milliseconds for pending entries to be claimed
+   * from other consumers via XAUTOCLAIM.  Requires Redis >= 6.2.
+   * Enables dead consumer recovery — entries abandoned by crashed consumers
+   * are automatically claimed and re-delivered through the iterator.
+   *
+   * Disabled by default (no claiming).
+   */
+  claimIdleTime?: number
+  /**
+   * Transform each entry's raw key-value array before yielding.
+   * Receives the entry ID, the flat `[k1, v1, k2, v2, ...]` array,
+   * and the stream name.  The return value becomes the entry payload
+   * in the iterator output: `[streamName, [entryId, T]]`.
+   *
+   * When omitted the raw `string[]` is yielded unchanged.
+   */
+  parse?: ParseFn<T>
 }

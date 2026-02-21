@@ -158,7 +158,7 @@ describe('redis-x-stream xreadgroup', () => {
     }
     const info = (await reader.xinfo('STREAM', [...stream.streams.keys()][0])) as [
       string,
-      number | string
+      number | string,
     ][]
     expect(info[1]).toEqual(entries.length - 5)
     expect(i).toEqual(5)
@@ -651,5 +651,229 @@ describe('redis-x-stream xreadgroup', () => {
     expect(error?.message).toMatch(/NOGROUP/)
     // The generator's finally block should have cleaned up
     expect(stream.done).toBe(true)
+  })
+
+  it('should claim idle entries from a dead consumer', async () => {
+    const streamKey = key('my-stream')
+    await hydrateForTest(writer, streamKey)
+
+    // Consumer A reads all entries without acking — entries are pending for A
+    const consumerA = redisStream({
+      group: 'my-group',
+      consumer: 'consumer-a',
+      streams: [streamKey],
+    })
+    await drain(consumerA)
+
+    // Consumer B starts with claimIdleTime: 0 (claim everything idle > 0ms).
+    // Since A never acked, all entries are claimable.
+    const consumerB = new RedisStream({
+      group: 'my-group',
+      consumer: 'consumer-b',
+      streams: [streamKey],
+      claimIdleTime: 0,
+      ackOnIterate: true,
+    })
+    let claimed = 0
+    for await (const [name, entry] of consumerB) {
+      expect(name).toEqual(streamKey)
+      expect(entry[0]).toMatch(redisIdRegex)
+      claimed++
+    }
+    expect(claimed).toEqual(testEntries.length)
+
+    // All entries should now be acked — nothing left in PEL
+    const verify = redisStream({ group: 'my-group', streams: [streamKey] })
+    const remaining = await drain(verify)
+    expect(remaining.get(streamKey)).toBeUndefined()
+  })
+
+  it('should yield both claimed and new entries', async () => {
+    const streamKey = key('my-stream')
+    await hydrateForTest(writer, streamKey)
+
+    // Consumer A reads all entries without acking
+    const consumerA = redisStream({
+      group: 'my-group',
+      consumer: 'consumer-a',
+      streams: [streamKey],
+    })
+    await drain(consumerA)
+
+    // Write fresh entries that no consumer has seen
+    const freshEntries = testEntries.slice(0, 3)
+    await hydrateForTest(writer, streamKey, ...freshEntries)
+
+    // Consumer B claims A's idle entries AND reads new entries
+    const consumerB = new RedisStream({
+      group: 'my-group',
+      consumer: 'consumer-b',
+      streams: [streamKey],
+      claimIdleTime: 0,
+      ackOnIterate: true,
+    })
+    let total = 0
+    for await (const _ of consumerB) {
+      void _
+      total++
+    }
+    // Should get all of A's entries (claimed) + the fresh entries (new)
+    expect(total).toEqual(testEntries.length + freshEntries.length)
+  })
+
+  it('should not claim when claimIdleTime is not set', async () => {
+    const streamKey = key('my-stream')
+    await hydrateForTest(writer, streamKey)
+
+    // Consumer A reads without acking
+    const consumerA = redisStream({
+      group: 'my-group',
+      consumer: 'consumer-a',
+      streams: [streamKey],
+    })
+    await drain(consumerA)
+
+    // Consumer B without claimIdleTime — only sees new entries (none)
+    const consumerB = new RedisStream({
+      group: 'my-group',
+      consumer: 'consumer-b',
+      streams: [streamKey],
+    })
+    let total = 0
+    for await (const _ of consumerB) {
+      void _
+      total++
+    }
+    expect(total).toEqual(0)
+  })
+
+  it('should apply the parse callback with consumer groups', async () => {
+    interface Msg {
+      field: string
+    }
+    const streamKey = key('my-stream')
+    const values = await hydrateForTest(writer, streamKey)
+    const stream = new RedisStream<Msg>({
+      group: 'my-group',
+      streams: [streamKey],
+      ackOnIterate: true,
+      parse: (_id, kv) => ({ field: kv[1] }),
+    })
+    const parsed: Msg[] = []
+    for await (const [name, [id, msg]] of stream) {
+      expect(name).toEqual(streamKey)
+      expect(id).toMatch(redisIdRegex)
+      expect(typeof msg.field).toBe('string')
+      parsed.push(msg)
+    }
+    expect(parsed.length).toEqual(values.length)
+    expect(parsed.map((m) => m.field)).toEqual(values.map((v) => v[1]))
+  })
+
+  describe('observability', () => {
+    it('info() should return stream metadata', async () => {
+      const streamKey = key('my-stream')
+      await hydrateForTest(writer, streamKey)
+      // Use external reader so the connection survives quit()
+      const stream = redisStream({ group: 'my-group', streams: [streamKey], redis: reader })
+      await drain(stream)
+
+      const info = await stream.info()
+      expect(info.size).toBe(1)
+      const si = info.get(streamKey)!
+      expect(si.length).toEqual(testEntries.length)
+      expect(si.groups).toBeGreaterThanOrEqual(1)
+      expect(si.firstEntry).toBeDefined()
+      expect(si.lastEntry).toBeDefined()
+    })
+
+    it('groups() should return group information', async () => {
+      const streamKey = key('my-stream')
+      await hydrateForTest(writer, streamKey)
+      const stream = redisStream({
+        group: 'my-group',
+        streams: [streamKey],
+        ackOnIterate: true,
+        redis: reader,
+      })
+      await drain(stream)
+
+      const groups = await stream.groups()
+      expect(groups.length).toBeGreaterThanOrEqual(1)
+      const g = groups.find((g) => g.name === 'my-group')!
+      expect(g).toBeDefined()
+      expect(g.consumers).toBeGreaterThanOrEqual(1)
+      expect(g.lastDeliveredId).toMatch(redisIdRegex)
+    })
+
+    it('consumers() should return consumer information', async () => {
+      const streamKey = key('my-stream')
+      await hydrateForTest(writer, streamKey)
+      const stream = redisStream({
+        group: 'my-group',
+        consumer: 'c1',
+        streams: [streamKey],
+        redis: reader,
+      })
+      await drain(stream)
+
+      const consumers = await stream.consumers()
+      expect(consumers.length).toBeGreaterThanOrEqual(1)
+      const c = consumers.find((c) => c.name === 'c1')!
+      expect(c).toBeDefined()
+      expect(typeof c.pending).toBe('number')
+      expect(typeof c.idle).toBe('number')
+    })
+
+    it('pending() should return PEL summary', async () => {
+      const streamKey = key('my-stream')
+      await hydrateForTest(writer, streamKey)
+
+      // Read without acking so entries stay in PEL
+      const stream = redisStream({
+        group: 'my-group',
+        consumer: 'c1',
+        streams: [streamKey],
+        redis: reader,
+      })
+      await drain(stream)
+
+      const p = await stream.pending()
+      expect(p.count).toEqual(testEntries.length)
+      expect(p.minId).toMatch(redisIdRegex)
+      expect(p.maxId).toMatch(redisIdRegex)
+      expect(p.consumers.length).toBe(1)
+      expect(p.consumers[0].name).toBe('c1')
+      expect(p.consumers[0].count).toBe(testEntries.length)
+    })
+
+    it('pending() on a fully-acked group should return zero', async () => {
+      const streamKey = key('my-stream')
+      await hydrateForTest(writer, streamKey)
+      const stream = redisStream({
+        group: 'my-group',
+        streams: [streamKey],
+        ackOnIterate: true,
+        redis: reader,
+      })
+      await drain(stream)
+
+      const p = await stream.pending()
+      expect(p.count).toBe(0)
+      expect(p.consumers).toEqual([])
+    })
+  })
+
+  describe('events', () => {
+    it('should emit ready when the client connects', async () => {
+      const streamKey = key('my-stream')
+      const stream = new RedisStream({ group: 'my-group', streams: [streamKey] })
+      const ready = await new Promise<boolean>((resolve) => {
+        stream.on('ready', () => resolve(true))
+        setTimeout(() => resolve(false), 2000)
+      })
+      expect(ready).toBe(true)
+      await stream.quit()
+    })
   })
 })
