@@ -78,7 +78,7 @@ describe('redis-x-stream xread', () => {
     for await (const [_, [id]] of stream) {
       void _
       try {
-        stream.ack(id)
+        stream.ack(streamName, id)
       } catch (e: unknown) {
         if (e instanceof Error) {
           ackAttempts++
@@ -122,6 +122,38 @@ describe('redis-x-stream xread', () => {
     }
     //stream will block indefinitely (i++ in the future to assert after loop)
     expect(i).toEqual(testEntries.length * 2 + 1)
+  })
+
+  it('should clean up properly when quit is called mid-iteration', async () => {
+    const streamName = key('my-stream'),
+      iterable = new RedisStream({ stream: streamName, count: randNum(1, 5) })
+    await hydrateForTest(writer, streamName)
+    let entries = 0
+    for await (const _ of iterable) {
+      void _
+      entries++
+      if (entries === 3) {
+        await iterable.quit()
+      }
+    }
+    expect(entries).toEqual(3)
+    expect(iterable.done).toBeTruthy()
+  })
+
+  it('should clean up created connections when break terminates the loop', async () => {
+    const streamName = key('my-stream'),
+      iterable = new RedisStream({ stream: streamName, count: randNum(1, 5) })
+    await hydrateForTest(writer, streamName)
+    let entries = 0
+    for await (const _ of iterable) {
+      void _
+      entries++
+      if (entries === 3) break
+    }
+    // break triggers the generator's finally block which calls quit()
+    expect(entries).toEqual(3)
+    expect(iterable.done).toBeTruthy()
+    expect(iterable.client.status).toEqual('end')
   })
 
   it('should not allow re-iteration (done is set)', async () => {

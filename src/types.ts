@@ -93,10 +93,12 @@ export interface RedisStreamOptions {
    */
   noack?: boolean
   /**
-   * If iteration is slow, set this to the maximum amount of time that should elapse before pending acks will be flushed
-   * This counter is reset after each iteration or ack
+   * Maximum time in milliseconds between an ack being queued and it being
+   * flushed to Redis.  The timer resets after each call to `ack()`.
+   * Useful when the consumer is slow or the reader is blocked — acks are
+   * flushed even if the next `readAckDelete` pipeline hasn't run yet.
    *
-   * TODO: not yet implemented
+   * Set to `null` (default) to disable the timer.
    */
-  flushPendingAckInterval?: number
+  flushPendingAckInterval?: number | null
 }

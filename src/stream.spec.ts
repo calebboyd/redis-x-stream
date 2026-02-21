@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import Redis from 'ioredis'
 import { rand } from './test.util.spec'
 import redisStream from './stream'
@@ -113,6 +113,26 @@ describe('RedisStream xread', () => {
     expect(stream.noack).toEqual(true)
     expect(stream.block).toEqual(1000)
     expect(stream.deleteOnAck).toEqual(true)
+    return stream.quit()
+  })
+
+  it('should use the explicitly passed client in flush()', async () => {
+    const stream = redisStream({
+      streams: [rand()],
+      block: Infinity,
+      group: 'g',
+      consumer: 'c',
+    })
+    // Queue an ack so flush() has work to do
+    stream.ack(rand(), '1-0')
+
+    // flush() with an explicit client should use that client, not control
+    const flushClient = new Redis()
+    const spy = vi.spyOn(flushClient, 'pipeline')
+    await stream.flush(flushClient)
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+    flushClient.disconnect()
     return stream.quit()
   })
 })
