@@ -156,6 +156,34 @@ describe('redis-x-stream xread', () => {
     expect(iterable.client.status).toEqual('end')
   })
 
+  it('should apply the parse callback to each entry', async () => {
+    interface Parsed {
+      key: string
+      value: string
+    }
+    const streamName = key('my-stream')
+    const values = await hydrateForTest(writer, streamName)
+    const iterable = new RedisStream<Parsed>({
+      stream: streamName,
+      count: randNum(1, 5),
+      parse: (id, kv, stream) => {
+        expect(id).toMatch(redisIdRegex)
+        expect(stream).toEqual(streamName)
+        return { key: kv[0], value: kv[1] }
+      },
+    })
+    let i = 0
+    for await (const [name, [id, parsed]] of iterable) {
+      expect(name).toEqual(streamName)
+      expect(id).toMatch(redisIdRegex)
+      // parsed is typed as Parsed
+      expect(parsed.key).toEqual(values[i][0])
+      expect(parsed.value).toEqual(values[i][1])
+      i++
+    }
+    expect(i).toEqual(values.length)
+  })
+
   it('should not allow re-iteration (done is set)', async () => {
     const streamName = key('my-stream'),
       iterable = new RedisStream({ stream: streamName, count: randNum(1, 2) })
