@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "rm -rf lib && npm run lint && npm run compile",
-    "docs": "typedoc src/stream.ts --excludePrivate",
+    "docs": "typedoc src/stream.ts --excludePrivate --plugin typedoc-plugin-markdown",
     "compile": "tsc && npm run compile:commonjs",
     "compile:commonjs": "tsc --module commonjs --outDir ./lib/commonjs && echo '{\"type\": \"commonjs\"}' > lib/commonjs/package.json",
     "commitlint": "commitlint -f $(git rev-list --tags --max-count=1) -t $(git log --pretty=%H | head -1)",

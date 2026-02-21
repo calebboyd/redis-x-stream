@@ -1,193 +1,216 @@
-[redis-x-stream](../README.md) / [Exports](../modules.md) / RedisStreamOptions
+[**redis-x-stream**](../README.md)
 
-# Interface: RedisStreamOptions
+***
 
-## Table of contents
+[redis-x-stream](../globals.md) / RedisStreamOptions
 
-### Properties
+# Interface: RedisStreamOptions\<T\>
 
-- [ackOnIterate](RedisStreamOptions.md#ackoniterate)
-- [block](RedisStreamOptions.md#block)
-- [buffers](RedisStreamOptions.md#buffers)
-- [consumer](RedisStreamOptions.md#consumer)
-- [count](RedisStreamOptions.md#count)
-- [deleteOnAck](RedisStreamOptions.md#deleteonack)
-- [flushPendingAckInterval](RedisStreamOptions.md#flushpendingackinterval)
-- [group](RedisStreamOptions.md#group)
-- [noack](RedisStreamOptions.md#noack)
-- [redis](RedisStreamOptions.md#redis)
-- [redisControl](RedisStreamOptions.md#rediscontrol)
-- [streams](RedisStreamOptions.md#streams)
+Defined in: [src/types.ts:79](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L79)
+
+## Type Parameters
+
+### T
+
+`T` = `StreamEntryKeyValues`
 
 ## Properties
 
-### ackOnIterate
+### ackOnIterate?
 
-• `Optional` **ackOnIterate**: `boolean`
+> `optional` **ackOnIterate**: `boolean`
+
+Defined in: [src/types.ts:132](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L132)
 
 If set to `true` Iterables utilizing consumer groups will
 automatically queue acknowledgments for previously iterated entries.
 
-**`Default`**
+#### Default
 
+```ts
 false
+```
 
-#### Defined in
+***
 
-[types.ts:76](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L76)
+### block?
 
-___
+> `optional` **block**: `number`
 
-### block
-
-• `Optional` **block**: `number`
+Defined in: [src/types.ts:126](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L126)
 
 The longest amount of time in milliseconds the dispenser should block
 while waiting for new entries on any stream, passed to xread or xreadgroup
 
-#### Defined in
+***
 
-[types.ts:70](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L70)
+### buffers?
 
-___
+> `optional` **buffers**: `boolean`
 
-### buffers
-
-• `Optional` **buffers**: `boolean`
+Defined in: [src/types.ts:115](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L115)
 
 Return buffers with each xread operation
 This applies to entry id and kv results
 
-#### Defined in
+***
 
-[types.ts:59](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L59)
+### claimIdleTime?
 
-___
+> `optional` **claimIdleTime**: `number`
 
-### consumer
+Defined in: [src/types.ts:161](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L161)
 
-• `Optional` **consumer**: `string`
+Minimum idle time in milliseconds for pending entries to be claimed
+from other consumers via XAUTOCLAIM.  Requires Redis >= 6.2.
+Enables dead consumer recovery — entries abandoned by crashed consumers
+are automatically claimed and re-delivered through the iterator.
+
+Disabled by default (no claiming).
+
+***
+
+### consumer?
+
+> `optional` **consumer**: `string`
+
+Defined in: [src/types.ts:99](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L99)
 
 The consumer.
 Note: if only consumer is provided, a group is created automatically
 
-#### Defined in
+***
 
-[types.ts:43](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L43)
+### count?
 
-___
+> `optional` **count**: `number`
 
-### count
-
-• `Optional` **count**: `number`
+Defined in: [src/types.ts:121](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L121)
 
 The maximum number of entries to retrieve in a single read operation
 eg. the "highWaterMark"
 
-**`Default`**
+#### Default
 
+```ts
 100
+```
 
-#### Defined in
+***
 
-[types.ts:65](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L65)
+### deleteOnAck?
 
-___
+> `optional` **deleteOnAck**: `boolean`
 
-### deleteOnAck
-
-• `Optional` **deleteOnAck**: `boolean`
+Defined in: [src/types.ts:138](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L138)
 
 If set to `true` Iterables utilizing consumer groups will
 automatically delete entries after acknowledgment
 
-**`Default`**
+#### Default
 
+```ts
 false
+```
 
-#### Defined in
+***
 
-[types.ts:82](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L82)
+### flushPendingAckInterval?
 
-___
+> `optional` **flushPendingAckInterval**: `number` \| `null`
 
-### flushPendingAckInterval
+Defined in: [src/types.ts:152](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L152)
 
-• `Optional` **flushPendingAckInterval**: `number`
+Maximum time in milliseconds between an ack being queued and it being
+flushed to Redis.  The timer resets after each call to `ack()`.
+Useful when the consumer is slow or the reader is blocked — acks are
+flushed even if the next `readAckDelete` pipeline hasn't run yet.
 
-If iteration is slow, set this to the maximum amount of time that should elapse before pending acks will be flushed
-This counter is reset after each iteration or ack
+Set to `null` (default) to disable the timer.
 
-TODO: not yet implemented
+***
 
-#### Defined in
+### group?
 
-[types.ts:94](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L94)
+> `optional` **group**: `string`
 
-___
-
-### group
-
-• `Optional` **group**: `string`
+Defined in: [src/types.ts:94](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L94)
 
 The consumer group.
 Note: if only a group is provided a consumer is created automatically
 
-#### Defined in
+***
 
-[types.ts:38](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L38)
+### noack?
 
-___
+> `optional` **noack**: `boolean`
 
-### noack
-
-• `Optional` **noack**: `boolean`
+Defined in: [src/types.ts:143](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L143)
 
 Pass the NOACK flag to calls to xreadgroup bypassing the Redis PEL
 
-**`Default`**
+#### Default
 
+```ts
 false
+```
 
-#### Defined in
+***
 
-[types.ts:87](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L87)
+### parse?
 
-___
+> `optional` **parse**: [`ParseFn`](../type-aliases/ParseFn.md)\<`T`\>
 
-### redis
+Defined in: [src/types.ts:170](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L170)
 
-• `Optional` **redis**: `string` \| `Redis` \| `RedisOptions`
+Transform each entry's raw key-value array before yielding.
+Receives the entry ID, the flat `[k1, v1, k2, v2, ...]` array,
+and the stream name.  The return value becomes the entry payload
+in the iterator output: `[streamName, [entryId, T]]`.
+
+When omitted the raw `string[]` is yielded unchanged.
+
+***
+
+### redis?
+
+> `optional` **redis**: `string` \| `Redis` \| [`RedisOptions`](../type-aliases/RedisOptions.md)
+
+Defined in: [src/types.ts:104](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L104)
 
 The IORedis client connection (reader).
 NOTE: by default this connection becomes a "reader" when block > 0
 
-#### Defined in
+***
 
-[types.ts:48](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L48)
+### redisControl?
 
-___
+> `optional` **redisControl**: `string` \| `Redis` \| [`RedisOptions`](../type-aliases/RedisOptions.md)
 
-### redisControl
-
-• `Optional` **redisControl**: `string` \| `Redis` \| `RedisOptions`
+Defined in: [src/types.ts:110](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L110)
 
 The IORedis control client connection (writer).
 NOTE: by default this connection becomes a "writer" when block = 0 or Infinity
 Only allowed if block = 0 or Infinity
 
-#### Defined in
+***
 
-[types.ts:54](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L54)
+### stream?
 
-___
+> `optional` **stream**: `string` \| `Record`\<`string`, `string`\> \| `string`[]
 
-### streams
-
-• **streams**: `Record`<`string`, `string`\> \| `string`[]
+Defined in: [src/types.ts:89](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L89)
 
 Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
 
-#### Defined in
+***
 
-[types.ts:33](https://github.com/calebboyd/redis-x-stream/blob/db326b7/src/types.ts#L33)
+### streams?
+
+> `optional` **streams**: `string` \| `Record`\<`string`, `string`\> \| `string`[]
+
+Defined in: [src/types.ts:85](https://github.com/calebboyd/redis-x-stream/blob/1e0e6ac627003b4ba2949a9771c9823b7e511ccb/src/types.ts#L85)
+
+Redis stream keys to be read. If a Record is provided each value is the starting id for that stream
+
+ *alias* for stream
