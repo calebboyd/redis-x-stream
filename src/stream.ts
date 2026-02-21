@@ -44,6 +44,7 @@ export class RedisStream {
   //behavior
   public ackOnIterate = false
   public deleteOnAck = false
+  public flushPendingAckInterval: number | null = null
 
   //state
   /**
@@ -60,7 +61,9 @@ export class RedisStream {
   public draining = false
   public reading = false
   public addedStreams: null | Iterable<[string, string]> = null
+  public pelDrainStreams: Set<string> | null = null
   private unblocked = false
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
 
   private readerId: number | null = null
   private pendingId: Promise<number | null> | null = null
@@ -155,63 +158,79 @@ export class RedisStream {
     if (options.ackOnIterate) {
       this.ackOnIterate = true
     }
+
+    if (typeof options.flushPendingAckInterval === 'number') {
+      this.flushPendingAckInterval = options.flushPendingAckInterval
+    }
   }
 
   async *[Symbol.asyncIterator](): AsyncIterator<XEntryResult> {
     const itr = this.itr
-    while (true) {
-      if (this.done) {
-        return this.quit()
-      }
-      if (this.ackOnIterate && this.itr.prev) {
-        this.itr.prev = this.ack(this.itr.name, this.itr.prev[0].toString())
-      }
-      if (!itr.stream) {
-        this.reading = true
-        itr.stream = await readAckDelete(this)
-        this.reading = false
-      }
-      if (!itr.stream && !this.first) {
-        if (this.unblocked) {
-          this.unblocked = false
+    try {
+      while (true) {
+        if (this.done) {
+          return
+        }
+        if (this.ackOnIterate && this.itr.prev) {
+          this.itr.prev = this.ack(this.itr.name, this.itr.prev[0].toString())
+        }
+        if (!itr.stream) {
+          this.reading = true
+          itr.stream = await readAckDelete(this)
+          this.reading = false
+        }
+        if (!itr.stream && !this.first) {
+          if (this.unblocked) {
+            this.unblocked = false
+            continue
+          }
+          return
+        }
+        if (this.first) {
+          for (const [stream] of this.streams) {
+            this.streams.set(stream, '>')
+          }
+          this.first = false
+        }
+        if (!itr.stream) {
           continue
         }
-        return this.quit()
-      }
-      if (this.first) {
-        for (const [stream] of this.streams) {
-          this.streams.set(stream, '>')
+        if (!itr.entry) {
+          const next = itr.stream.next()
+          if (!next.done) {
+            itr.name = next.value[0].toString()
+            itr.entry = next.value[1][Symbol.iterator]()
+          } else {
+            itr.stream = null
+          }
+          continue
         }
-        this.first = false
-      }
-      if (!itr.stream) {
-        continue
-      }
-      if (!itr.entry) {
-        const next = itr.stream.next()
-        if (!next.done) {
-          itr.name = next.value[0].toString()
-          itr.entry = next.value[1][Symbol.iterator]()
+        const result = itr.entry.next()
+        if (result.done) {
+          itr.entry = null
         } else {
-          itr.stream = null
+          const pelDrain = this.pelDrainStreams?.has(itr.name)
+          this.streams.set(itr.name, this.group && !pelDrain ? '>' : result.value[0].toString())
+          if (this.ackOnIterate) itr.prev = result.value
+          yield [itr.name, result.value]
         }
-        continue
       }
-      const result = itr.entry.next()
-      if (result.done) {
-        itr.entry = null
-      } else {
-        //TODO add test case for this '>'
-        this.streams.set(itr.name, this.group ? '>' : result.value[0].toString())
-        if (this.ackOnIterate) itr.prev = result.value
-        yield [itr.name, result.value]
-      }
+    } finally {
+      await this.quit()
     }
   }
 
   public async quit(): Promise<void> {
     if (!this.done) {
       this.done = true
+      this.clearFlushTimer()
+      // Flush the last ackOnIterate entry that would normally be acked at
+      // the top of the next iteration.  When quit() is called externally or
+      // the generator exits via break, that iteration never runs.
+      if (this.ackOnIterate && this.itr.prev) {
+        this.ack(this.itr.name, this.itr.prev[0].toString())
+        this.itr.prev = undefined
+      }
       if (this.pendingAcks.size || this.readerId) {
         const pipeline = (this.control ? this.control : this.client).pipeline()
         this.pendingAcks.size && ack(pipeline, this)
@@ -236,7 +255,28 @@ export class RedisStream {
     const acks = this.pendingAcks.get(stream) || []
     acks.push(...ids)
     this.pendingAcks.set(stream, acks)
+    this.resetFlushTimer()
     return
+  }
+
+  private resetFlushTimer() {
+    if (this.flushPendingAckInterval == null) return
+    this.clearFlushTimer()
+    const timer = setTimeout(() => {
+      this.flushTimer = null
+      if (this.pendingAcks.size && !this.done) {
+        this.flush().catch(() => {})
+      }
+    }, this.flushPendingAckInterval)
+    timer.unref()
+    this.flushTimer = timer
+  }
+
+  private clearFlushTimer() {
+    if (this.flushTimer != null) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
   }
 
   private async maybeUnblock() {
@@ -277,7 +317,7 @@ export class RedisStream {
     if (!this.pendingAcks.size) return
     let c = client
     if (!this.done) {
-      c = c ?? this.control ? this.control : this.client
+      c = c ?? (this.control ? this.control : this.client)
     }
     if (this.done && !this.createdConnection) {
       c = c ?? this.client
@@ -286,10 +326,6 @@ export class RedisStream {
     const pipeline = c.pipeline()
     ack(pipeline, this)
     await pipeline.exec()
-  }
-
-  protected async return(): Promise<void> {
-    await this.quit()
   }
 }
 

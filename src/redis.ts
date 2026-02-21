@@ -34,22 +34,54 @@ export async function readAckDelete(
     return
   }
 
-  //TODO: FATAL - NOGROUP the consumer group this client was blocked on no longer exists
+  // BUSYGROUP is expected when XGROUP CREATE races with another consumer.
+  // All other errors (including NOGROUP when a group is deleted externally)
+  // are propagated to the caller — the generator's try/finally ensures cleanup.
   for (const result of responses) {
     if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
-      throw responses[0]
+      throw result[0]
     }
   }
   const result = responses[responses.length - 1][1] as XStreamResult[] | null
+
+  // Check if any PEL-draining streams have been fully drained.
+  // A stream's PEL is exhausted when it returns 0 entries — switch it to '>'.
+  // If PEL had entries they stay in `pelDrainStreams` and the iterator's yield
+  // code advances the cursor (by entry ID) so the next read paginates the PEL.
+  let transitioned = false
+  if (stream.pelDrainStreams?.size) {
+    if (result) {
+      for (const [streamKey, entries] of result) {
+        const key = streamKey.toString()
+        if (stream.pelDrainStreams.has(key) && entries.length === 0) {
+          stream.streams.set(key, '>')
+          stream.pelDrainStreams.delete(key)
+          transitioned = true
+        }
+      }
+    } else {
+      for (const key of stream.pelDrainStreams) {
+        stream.streams.set(key, '>')
+      }
+      stream.pelDrainStreams.clear()
+      transitioned = true
+    }
+    if (stream.pelDrainStreams.size === 0) {
+      stream.pelDrainStreams = null
+    }
+  }
+
   if (!result) {
+    if (transitioned) return readAckDelete(stream)
     return
   }
   if (stream.group) {
-    for (const stream of result) {
-      if (stream[1].length) {
+    for (const s of result) {
+      if (s[1].length) {
         return result[Symbol.iterator]()
       }
     }
+    if (transitioned) return readAckDelete(stream)
   } else {
     return result[Symbol.iterator]()
   }
@@ -71,9 +103,16 @@ function xgroup(client: ChainableCommander, stream: RedisStream): void {
   const { group, streams, first, addedStreams } = stream
   if (addedStreams) {
     for (const [key, start] of addedStreams) {
-      streams.set(key, start)
       if (group && !first) {
         client.xgroup('CREATE', key, group, start, 'MKSTREAM')
+        // Read PEL first ('0'), then transition to '>' once drained.
+        // The PEL may contain entries from a pre-existing group (e.g. a
+        // consumer in a distributed setup read entries and crashed).
+        streams.set(key, '0')
+        if (!stream.pelDrainStreams) stream.pelDrainStreams = new Set()
+        stream.pelDrainStreams.add(key)
+      } else {
+        streams.set(key, start)
       }
     }
     stream.addedStreams = null
