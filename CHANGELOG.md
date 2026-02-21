@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.0.0](https://github.com/calebboyd/redis-x-stream/compare/v3.2.3...v4.0.0) (2026-02-21)
+
+
+### Features
+
+* bug fixes, PEL drain, claimIdleTime, observability, and parse ([d9fa8ac](https://github.com/calebboyd/redis-x-stream/commit/d9fa8ac9c71d102498c3861e411584c960f51e20))
+* v4 - generic parse, claimIdleTime, observability, event emitter ([6c56d5e](https://github.com/calebboyd/redis-x-stream/commit/6c56d5e7931ebcf776261a2dc407b49b31c3a04b))
+
+
+### BREAKING CHANGES
+
+* RedisStream now extends EventEmitter, RedisStreamOptions
+is generic, and the return() method has been removed.
+
 ## [3.2.3](https://github.com/calebboyd/redis-x-stream/compare/v3.2.2...v3.2.3) (2023-01-09)
 
 
