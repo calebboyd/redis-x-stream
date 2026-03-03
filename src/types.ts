@@ -75,6 +75,13 @@ if (typeof process !== 'undefined' && process.env) {
   env.REDIS_X_STREAM_URL = process.env.REDIS_X_STREAM_URL
 }
 export type ParseFn<T> = (id: StreamEntryId, kv: StreamEntryKeyValues, stream: StreamKey) => T
+/**
+ * Parse function variant for use with `buffers: true`.
+ * When buffer mode is enabled the raw key-value array contains Buffers
+ * instead of strings.  Use this type when writing a standalone parse
+ * function that only handles buffer mode.
+ */
+export type ParseBufferFn<T> = (id: StreamEntryId, kv: Buffer[], stream: StreamKey) => T
 
 export interface RedisStreamOptions<T = StreamEntryKeyValues> {
   /**
