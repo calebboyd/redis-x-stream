@@ -6,6 +6,13 @@ Async iterables over Redis streams. Requires Redis 5+ (6.2+ for `claimIdleTime`)
 [![license](https://badgen.net/badge/license/MIT/blue)](https://github.com/calebboyd/redis-x-stream/blob/main/LICENSE)
 [![test](https://github.com/calebboyd/redis-x-stream/actions/workflows/test.yml/badge.svg)](https://github.com/calebboyd/redis-x-stream/actions)
 
+## Submodules
+
+This package includes two higher-level modules built on `RedisStream`:
+
+- **[Queue](./src/queue/README.md)** -- Job queue with workers, concurrency, retries, backoff, dead-letter queues, and output streams. `import { Queue, Worker } from 'redis-x-stream/queue'`
+- **[Cache](./src/cache/README.md)** -- Distributed single-flight cache with two-tier storage (in-process + Redis), cross-instance broadcast via Redis Streams, and automatic thundering herd prevention. `import { SingleFlightCache } from 'redis-x-stream/cache'`
+
 ## Install
 
 ```bash

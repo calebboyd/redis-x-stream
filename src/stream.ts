@@ -22,6 +22,7 @@ export {
   RedisClient,
   RedisOptions,
   ParseFn,
+  ParseBufferFn,
   StreamInfo,
   GroupInfo,
   ConsumerInfo,
@@ -342,10 +343,7 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
           this.streams.set(itr.name, this.group && !pelDrain ? '>' : result.value[0].toString())
           if (this.ackOnIterate) itr.prev = result.value
           const entry: [StreamEntryId, T] = this.parseFn
-            ? [
-                result.value[0],
-                this.parseFn(result.value[0].toString(), result.value[1] as string[], itr.name),
-              ]
+            ? [result.value[0], this.parseFn(result.value[0].toString(), result.value[1], itr.name)]
             : (result.value as unknown as [StreamEntryId, T])
           yield [itr.name, entry]
         }
