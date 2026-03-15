@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import Redis from 'ioredis'
 import { rand } from './test.util.spec'
 import redisStream from './stream'
+import { delay } from './test.util.spec.js'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JustForTests = any
@@ -41,9 +42,9 @@ describe('RedisStream xread', () => {
 
   it('should not accept redis control options if stream is not blocking', async () => {
     expect(() =>
-      redisStream({ redisControl: 'redis://localhost:6739', streams: ['my-stream'] })
+      redisStream({ redisControl: 'redis://localhost:6739', streams: ['my-stream'] }),
     ).toThrow(
-      'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`'
+      'redisControl options are only needed in blocking mode: `block: Infinity` | `block: 0`',
     )
     const stream = redisStream({
       redisControl: 'redis://localhost:6739',
@@ -56,8 +57,13 @@ describe('RedisStream xread', () => {
   it('should not accept unrecognized options', () => {
     const random = { some: 'prop', thing: 'wrong' }
     expect(() => redisStream({ redis: { host: 'localhost' }, streams: ['m'], ...random })).toThrow(
-      `Unexpected option(s): "some","thing"`
+      `Unexpected option(s): "some","thing"`,
     )
+  })
+
+  it('should throw when no stream keys are provided', () => {
+    expect(() => redisStream({ streams: [] })).toThrow('At least one stream key is required')
+    expect(() => redisStream({ streams: {} })).toThrow('At least one stream key is required')
   })
 
   it('should manage initial and finished state', async () => {
@@ -134,5 +140,46 @@ describe('RedisStream xread', () => {
     spy.mockRestore()
     flushClient.disconnect()
     return stream.quit()
+  })
+
+  it('should forward control connection errors', async () => {
+    const redis = new Redis()
+    const redisControl = new Redis()
+    const stream = redisStream({
+      streams: ['m-' + rand()],
+      redis,
+      redisControl,
+      block: Infinity,
+    })
+
+    const error = new Error('control-error')
+    const received = new Promise<Error>((resolve) => {
+      stream.on('error', resolve)
+    })
+
+    const listener = redisControl.listeners('error')[0] as ((err: Error) => void) | undefined
+    expect(listener).toBeDefined()
+    listener?.(error)
+    await expect(received).resolves.toBe(error)
+
+    await stream.quit()
+    redis.disconnect()
+    redisControl.disconnect()
+  })
+
+  it('should close unreachable created clients promptly', async () => {
+    const stream = redisStream({
+      streams: ['m-' + rand()],
+      redis: 'redis://127.0.0.1:6739',
+      redisControl: 'redis://127.0.0.1:6739',
+      block: Infinity,
+    })
+
+    const result = await Promise.race([
+      stream.quit().then(() => 'closed'),
+      delay(1000).then(() => 'timeout'),
+    ])
+
+    expect(result).toBe('closed')
   })
 })

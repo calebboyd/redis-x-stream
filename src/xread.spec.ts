@@ -169,7 +169,7 @@ describe('redis-x-stream xread', () => {
       parse: (id, kv, stream) => {
         expect(id).toMatch(redisIdRegex)
         expect(stream).toEqual(streamName)
-        return { key: kv[0], value: kv[1] }
+        return { key: kv[0]?.toString(), value: kv[1]?.toString() }
       },
     })
     let i = 0

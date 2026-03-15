@@ -1,7 +1,6 @@
-import Redis from 'ioredis'
 import { describe, expect, it, afterEach } from 'vitest'
 import { SingleFlightCache } from './cache.js'
-import { delay, quit, rand } from '../test.util.spec.js'
+import { delay, rand } from '../test.util.spec.js'
 
 async function waitFor(
   condition: () => boolean | Promise<boolean>,
@@ -315,11 +314,8 @@ describe('SingleFlightCache', () => {
   it('rejects with fetch timeout when retry fetch hangs', async () => {
     const prefix = `sfc-${rand()}:`
     const stream = `results-${rand()}`
-    let fetchCount = 0
-
     const cache = new SingleFlightCache<{ n: number }>({
       fetcher: async () => {
-        fetchCount++
         // Every fetch hangs forever
         return new Promise(() => {})
       },
@@ -534,5 +530,22 @@ describe('SingleFlightCache', () => {
     await promise
 
     expect(receivedSignal!.aborted).toBe(true)
+  })
+
+  it('close() resolves promptly when created clients never connect', async () => {
+    const cache = new SingleFlightCache<{ n: number }>({
+      fetcher: async () => ({ n: 1 }),
+      redis: 'redis://127.0.0.1:6739',
+      keyPrefix: `sfc-${rand()}:`,
+      resultStream: `results-${rand()}`,
+      timeout: 100,
+    })
+
+    const result = await Promise.race([
+      cache.close().then(() => 'closed'),
+      delay(1000).then(() => 'timeout'),
+    ])
+
+    expect(result).toBe('closed')
   })
 })

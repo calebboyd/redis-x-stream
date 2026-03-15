@@ -172,7 +172,8 @@ export interface RedisStreamOptions<T = StreamEntryKeyValues> {
    * and the stream name.  The return value becomes the entry payload
    * in the iterator output: `[streamName, [entryId, T]]`.
    *
-   * When omitted the raw `string[]` is yielded unchanged.
+   * When `buffers: true`, the raw key-value array contains `Buffer[]`.
+   * When omitted the raw payload is yielded unchanged.
    */
-  parse?: ParseFn<T>
+  parse?: (id: StreamEntryId, kv: StreamEntryKeyValues | Buffer[], stream: StreamKey) => T
 }

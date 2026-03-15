@@ -218,4 +218,56 @@ describe('queue worker', () => {
     await worker.close(1000)
     await writer.del(badKey)
   })
+
+  it('waits for retry re-enqueue before closing connections', async () => {
+    workerClient = new Redis()
+    const reader = new Redis()
+    const writer = new Redis()
+    cleanups.push(() => quit(reader))
+    cleanups.push(() => quit(writer))
+
+    const stream = `queue-${rand()}`
+    const group = `group-${rand()}`
+    const queue = new Queue<{ value: number }>(stream, { redis: writer })
+    const codec = await resolveCodec()
+
+    let started = false
+    const worker = new Worker<{ value: number }>(stream, {
+      group,
+      redis: workerClient,
+      retries: 1,
+      backoff: { strategy: 'fixed', delay: 60_000 },
+      handler: async (_job, ctx) => {
+        started = true
+        await new Promise<void>((resolve) => {
+          if (ctx.signal.aborted) return resolve()
+          ctx.signal.addEventListener('abort', () => resolve(), { once: true })
+        })
+        throw new Error('close-race')
+      },
+    })
+
+    const retryWriter = (worker as unknown as { writer: Redis }).writer
+    const originalXadd = retryWriter.xadd.bind(retryWriter)
+    retryWriter.xadd = (async (...args: Parameters<Redis['xadd']>) => {
+      await delay(100)
+      return originalXadd(...args)
+    }) as Redis['xadd']
+
+    await queue.add({ value: 5 })
+    await waitFor(() => started)
+
+    await worker.close(5000)
+
+    const entries = await reader.xrangeBuffer(stream, '-', '+')
+    expect(entries.length).toBeGreaterThanOrEqual(1)
+
+    const last = entries[entries.length - 1] as [Buffer, Buffer[]]
+    const decoded = decodeJob<{ value: number }>(last[0].toString(), stream, last[1], codec)
+    expect('job' in decoded).toBe(true)
+    if ('job' in decoded) {
+      expect(decoded.job.attempt).toBe(1)
+      expect(decoded.job.data.value).toBe(5)
+    }
+  })
 })

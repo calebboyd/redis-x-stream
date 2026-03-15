@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
 import { RedisStream } from '../stream.js'
-import { createClient } from '../redis.js'
+import { closeClient, createClient } from '../redis.js'
 import { resolveCodec } from '../queue/codec.js'
 import { CACHE_GET, CACHE_SET, CACHE_INVALIDATE, CACHE_EXTEND_LOCK } from './lua.js'
 import type { RedisClient, RedisOptions } from '../types.js'
@@ -15,7 +15,7 @@ function normalizeError(err: unknown): Error {
 // Typed as ParseFn (kv: string[]) but called with buffers: true at runtime,
 // so kv entries are actually Buffers.  toString() works for both types; the
 // only place the difference matters is the raw value extraction below.
-function parseStreamResult(_id: string, kv: string[]): StreamResult {
+function parseStreamResult(_id: string, kv: Buffer[] | string[]): StreamResult {
   let key: string | undefined
   let type: string | undefined
   let value: Buffer | undefined
@@ -121,13 +121,13 @@ export class SingleFlightCache<T> extends EventEmitter {
 
   // ---- Typed event emitter overrides ----
 
-  public override on<K extends keyof CacheEvents<T>>(event: K, listener: CacheEvents<T>[K]): this {
+  public override on<K extends keyof CacheEvents>(event: K, listener: CacheEvents[K]): this {
     return super.on(event, listener)
   }
 
-  public override emit<K extends keyof CacheEvents<T>>(
+  public override emit<K extends keyof CacheEvents>(
     event: K,
-    ...args: Parameters<CacheEvents<T>[K]>
+    ...args: Parameters<CacheEvents[K]>
   ): boolean {
     return super.emit(event, ...args)
   }
@@ -184,7 +184,12 @@ export class SingleFlightCache<T> extends EventEmitter {
       't',
       'value',
     )
-    await pipeline.exec()
+    const results = await pipeline.exec()
+    if (results) {
+      for (const [err] of results) {
+        if (err) throw err
+      }
+    }
 
     this.resolveEntry(key, value)
   }
@@ -251,10 +256,7 @@ export class SingleFlightCache<T> extends EventEmitter {
     await this.listenerPromise
 
     if (this.createdClient) {
-      await Promise.all([
-        new Promise((resolve) => this.client.once('end', resolve)),
-        this.client.quit(),
-      ])
+      await closeClient(this.client)
     }
 
     this.emit('closed')

@@ -79,7 +79,7 @@ export interface SingleFlightCacheOptions<T> {
   maxSize?: number
 }
 
-export interface CacheEvents<T> {
+export interface CacheEvents {
   hit: (key: string, source: 'local' | 'redis' | 'stream') => void
   miss: (key: string) => void
   refresh: (key: string) => void
