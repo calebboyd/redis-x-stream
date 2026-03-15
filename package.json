@@ -79,6 +79,7 @@
     "ioredis": "^5.9.3",
     "oxlint": "^1.49.0",
     "prettier": "^3.8.1",
+    "msgpackr": "^1.11.8",
     "semantic-release": "^25.0.3",
     "typedoc": "^0.28.17",
     "typedoc-plugin-markdown": "^4.10.0",

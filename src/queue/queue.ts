@@ -1,5 +1,5 @@
 import type { RedisClient } from '../types.js'
-import { createClient } from '../redis.js'
+import { closeClient, createClient } from '../redis.js'
 import { resolveCodec } from './codec.js'
 import { encodeJob } from './job.js'
 import type { Codec, QueueOptions } from './types.js'
@@ -45,10 +45,7 @@ export class Queue<T> {
 
   public async close(): Promise<void> {
     if (!this.created) return
-    await Promise.all([
-      new Promise((resolve) => this.client.once('end', resolve)),
-      this.client.quit(),
-    ])
+    await closeClient(this.client)
   }
 
   private baseMeta() {

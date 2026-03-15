@@ -1,11 +1,10 @@
 import { hostname } from 'os'
 import { EventEmitter } from 'events'
-import { ack, createClient, initStreams, readAckDelete } from './redis.js'
+import { ack, closeClient, createClient, initStreams, readAckDelete } from './redis.js'
 import type {
   RedisStreamOptions,
   RedisClient,
   RedisStreamEvents,
-  ParseFn,
   StreamEntryId,
   StreamEntryKeyValues,
   StreamKey,
@@ -16,6 +15,12 @@ import type {
   ConsumerInfo,
   PendingSummary,
 } from './types.js'
+
+type ParseAnyFn<T> = (
+  id: StreamEntryId,
+  kv: StreamEntryKeyValues | Buffer[],
+  stream: StreamKey,
+) => T
 
 export {
   RedisStreamOptions,
@@ -28,7 +33,7 @@ export {
   ConsumerInfo,
   PendingSummary,
   RedisStreamEvents,
-} from './types'
+} from './types.js'
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
 function kvToObject<T>(arr: any[]): T {
@@ -79,7 +84,7 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
   public deleteOnAck = false
   public flushPendingAckInterval: number | null = null
   public claimIdleTime: number | null = null
-  private parseFn?: ParseFn<T>
+  private parseFn?: ParseAnyFn<T>
 
   //state
   /**
@@ -100,6 +105,7 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
   public claimCursors = new Map<string, string>()
   private unblocked = false
   private flushTimer: ReturnType<typeof setTimeout> | null = null
+  private addStreamWaiters: Array<{ resolve: () => void; reject: (error: Error) => void }> = []
 
   private readerId: number | null = null
   private pendingId: Promise<number | null> | null = null
@@ -119,6 +125,12 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
    * Did we create the control redis connection?
    */
   private createdControlConnection = false
+
+  private emitError(error: Error): void {
+    if (this.listenerCount('error') > 0) {
+      this.emit('error', error)
+    }
+  }
 
   constructor(options: RedisStreamOptions<T> | string, ...streams: string[]) {
     super()
@@ -142,6 +154,10 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
       ...initStreams(options.stream),
     ])
 
+    if (this.streams.size === 0) {
+      throw new TypeError('At least one stream key is required')
+    }
+
     if (this.block === 0 || this.block === Infinity) {
       this.blocked = true
       const { client, created } = createClient(options.redisControl)
@@ -159,10 +175,14 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
 
     // Forward ioredis connection events so consumers can observe
     // connection health without accessing the underlying client.
-    this.client.on('error', (err: Error) => this.emit('error', err))
+    this.client.on('error', (err: Error) => this.emitError(err))
     this.client.on('ready', () => this.emit('ready'))
     this.client.on('close', () => this.emit('close'))
     this.client.on('reconnecting', () => this.emit('reconnecting'))
+
+    if (this.control && this.control !== this.client) {
+      this.control.on('error', (err: Error) => this.emitError(err))
+    }
 
     if (this.blocked) {
       this.pendingId = this.client.client('ID').then(
@@ -212,7 +232,7 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
     }
 
     if (options.parse) {
-      this.parseFn = options.parse
+      this.parseFn = options.parse as ParseAnyFn<T>
     }
   }
 
@@ -317,9 +337,9 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
           return
         }
         if (this.first) {
-          for (const [stream] of this.streams) {
-            this.streams.set(stream, '>')
-          }
+          // Cleared here as a defensive fallback; the normal path
+          // clears `first` inside readAckDelete after setting up
+          // pelDrainStreams for PEL pagination.
           this.first = false
         }
         if (!itr.stream) {
@@ -366,17 +386,18 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
       }
       if (this.pendingAcks.size || this.readerId) {
         const pipeline = (this.control ? this.control : this.client).pipeline()
-        this.pendingAcks.size && ack(pipeline, this)
-        this.readerId && pipeline.client('UNBLOCK', this.readerId)
+        if (this.pendingAcks.size) {
+          ack(pipeline, this)
+        }
+        if (this.readerId) {
+          pipeline.client('UNBLOCK', this.readerId)
+        }
         await pipeline.exec()
       }
       if (!(this.createdConnection || this.createdControlConnection)) return
       await Promise.all([
-        this.createdConnection && new Promise((resolve) => this.client.once('end', resolve)),
-        this.createdConnection && this.client.quit(),
-        this.createdControlConnection &&
-          new Promise((resolve) => this.control?.once('end', resolve)),
-        this.createdControlConnection && this.control?.quit(),
+        this.createdConnection ? closeClient(this.client) : undefined,
+        this.createdControlConnection ? closeClient(this.control) : undefined,
       ])
     }
   }
@@ -412,6 +433,22 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
     }
   }
 
+  public finishAddingStreams(): void {
+    if (!this.addStreamWaiters.length) return
+    const waiters = this.addStreamWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.resolve()
+    }
+  }
+
+  public failAddingStreams(error: Error): void {
+    if (!this.addStreamWaiters.length) return
+    const waiters = this.addStreamWaiters.splice(0)
+    for (const waiter of waiters) {
+      waiter.reject(error)
+    }
+  }
+
   private async maybeUnblock() {
     if (this.reading && !this.done) {
       if (typeof this.readerId !== 'number') {
@@ -427,10 +464,16 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
   }
 
   public async addStream(streams: RedisStreamOptions['streams'] | string) {
+    const additions = [...initStreams(streams)]
+    const waitForProcessing =
+      this.group && this.reading && !this.done
+        ? new Promise<void>((resolve, reject) => this.addStreamWaiters.push({ resolve, reject }))
+        : null
     this.addedStreams = this.addedStreams
-      ? [...this.addedStreams, ...initStreams(streams)]
-      : initStreams(streams)
+      ? [...this.addedStreams, ...additions]
+      : additions
     await this.maybeUnblock()
+    await waitForProcessing
   }
 
   /**
@@ -458,7 +501,12 @@ export class RedisStream<T = StreamEntryKeyValues> extends EventEmitter {
     if (!c) throw new Error('No suitable client')
     const pipeline = c.pipeline()
     ack(pipeline, this)
-    await pipeline.exec()
+    const results = await pipeline.exec()
+    if (results) {
+      for (const [err] of results) {
+        if (err) throw err
+      }
+    }
   }
 }
 

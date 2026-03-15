@@ -15,6 +15,18 @@ import { RedisClient } from './types.js'
 
 describe('redis-x-stream xreadgroup', () => {
   let writer!: RedisClient, reader: RedisClient, prefix: string
+  const waitFor = async (
+    condition: () => boolean | Promise<boolean>,
+    timeout = 3000,
+    interval = 10,
+  ): Promise<void> => {
+    const start = Date.now()
+    while (Date.now() - start < timeout) {
+      if (await condition()) return
+      await delay(interval)
+    }
+    throw new Error('Timed out waiting for condition')
+  }
   const streams = new Set<string>(),
     key = (name?: string) => {
       name = prefix + name
@@ -348,17 +360,16 @@ describe('redis-x-stream xreadgroup', () => {
       ackOnIterate: true,
     })
     let i = 0
+    let laterWrites: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        // Add laterStream with $ offset — only entries added AFTER group creation are visible
-        stream.addStream({ [laterStream]: '$' }).then(() => {
-          // Write new entries after the group was created
-          hydrateForTest(writer, laterStream).then(() => {
-            // The stream is blocked, but laterStream now has new entries
-          })
-        })
+        laterWrites = (async () => {
+          await waitFor(() => stream.reading)
+          await stream.addStream({ [laterStream]: '$' })
+          await hydrateForTest(writer, laterStream)
+        })()
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
@@ -370,8 +381,38 @@ describe('redis-x-stream xreadgroup', () => {
         }, 100)
       }
     }
+    await laterWrites
     // Got all entries from myStream + only newly-written entries from laterStream
     expect(i).toEqual(testEntries.length * 2 + 1)
+  })
+
+  it('should resolve addStream() after group setup when the reader is blocked', async () => {
+    const myStream = key('my-stream')
+    const laterStream = key('later-stream')
+    await hydrateForTest(writer, myStream)
+
+    const stream = new RedisStream({
+      streams: [myStream],
+      block: Infinity,
+      count: testEntries.length + 5,
+      group: 'my-group',
+      ackOnIterate: true,
+    })
+
+    const iterator = (async () => {
+      for await (const _ of stream) {
+        void _
+      }
+    })()
+
+    await waitFor(() => stream.reading)
+    await stream.addStream({ [laterStream]: '$' })
+
+    const groups = await stream.groups(laterStream)
+    expect(groups.some((group) => group.name === 'my-group')).toBe(true)
+
+    await stream.quit()
+    await iterator
   })
 
   it('should read PEL entries when adding a stream with a pre-existing group', async () => {
@@ -471,6 +512,44 @@ describe('redis-x-stream xreadgroup', () => {
     }
     // All entries from both streams, despite count=3 << PEL size
     expect(i).toEqual(testEntries.length * 2 + 1)
+  })
+
+  it('should paginate PEL on initial boot when PEL exceeds count', async () => {
+    const streamKey = key('my-stream')
+    await hydrateForTest(writer, streamKey)
+    expect(testEntries.length).toBeGreaterThan(3)
+
+    // Consumer reads all entries without acking → fills PEL
+    const prev = redisStream({
+      group: 'my-group',
+      consumer: 'my-consumer',
+      streams: [streamKey],
+    })
+    await drain(prev)
+
+    // Same consumer restarts with count=3 (smaller than PEL).
+    // All PEL entries must be delivered via paginated reads, not
+    // fetched in a single unbounded batch.
+    const stream = new RedisStream({
+      streams: [streamKey],
+      count: 3,
+      group: 'my-group',
+      consumer: 'my-consumer',
+      ackOnIterate: true,
+    })
+    let idx = 0
+    for await (const [name, entry] of stream) {
+      expect(name).toEqual(streamKey)
+      expect(entry[0]).toMatch(redisIdRegex)
+      expect(entry[1]).toEqual(testEntries[idx++])
+    }
+    // Every PEL entry was delivered despite count being smaller than PEL size
+    expect(idx).toEqual(testEntries.length)
+
+    // All entries should be acked — nothing left in PEL
+    const verify = redisStream({ group: 'my-group', streams: [streamKey] })
+    const remaining = await drain(verify)
+    expect(remaining.get(streamKey)).toBeUndefined()
   })
 
   it('should ack the last entry when break terminates the loop', async () => {
@@ -757,7 +836,7 @@ describe('redis-x-stream xreadgroup', () => {
       group: 'my-group',
       streams: [streamKey],
       ackOnIterate: true,
-      parse: (_id, kv) => ({ field: kv[1] }),
+      parse: (_id, kv) => ({ field: kv[1]?.toString() }),
     })
     const parsed: Msg[] = []
     for await (const [name, [id, msg]] of stream) {
