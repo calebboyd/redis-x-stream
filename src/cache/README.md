@@ -41,7 +41,7 @@ processes -- result in a single fetch. All callers receive the same value.
 
 When `get(key)` is called:
 
-1. **L1 check** -- if the local Map has a non-expired entry, return it immediately.
+1. **L1 check** -- if the local Map has a non-expired entry, return a detached copy immediately.
 2. **In-process coalescing** -- if another `get()` for the same key is already
    in flight within this process, add a waiter to the existing `PendingEntry`.
 3. **CACHE_GET Lua** -- atomically check Redis and conditionally acquire a
@@ -78,7 +78,8 @@ async get(key: string, options?: { signal?: AbortSignal }): Promise<T>
 
 Returns the cached value or fetches it. The optional `AbortSignal` cancels
 only the calling waiter -- it does not abort the underlying fetch or affect
-other waiters for the same key.
+other waiters for the same key. Local hits return a detached copy so caller
+mutation does not change the cached entry.
 
 ### `set(key, value)`
 
@@ -96,7 +97,8 @@ peek(key: string): T | undefined
 ```
 
 Read from the local L1 cache without triggering a fetch, emitting events,
-or updating LRU order. Returns `undefined` if absent or expired.
+or updating LRU order. Returns a detached copy, or `undefined` if absent or
+expired.
 
 ### `invalidate(key)`
 
@@ -280,7 +282,9 @@ const productCache = new SingleFlightCache({
 
 Payloads are serialized with a pluggable codec. The default is JSON.
 MessagePack is also supported via the optional `msgpackr` package for
-compact binary encoding, or provide a custom implementation:
+compact binary encoding, or provide a custom implementation. The configured
+codec is also used to copy values into and out of L1 so local hits follow the
+same serialization semantics as Redis and stream hits:
 
 ```typescript
 // MessagePack codec (requires: npm install msgpackr)

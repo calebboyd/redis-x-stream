@@ -69,8 +69,7 @@ return 1`,
  */
 export const CACHE_INVALIDATE = new LuaScript(
   `redis.call('DEL', KEYS[1])
-redis.call('XADD', KEYS[2], 'MAXLEN', '~', ARGV[1], '*', 'k', ARGV[2], 't', 'tombstone')
-return 1`,
+return redis.call('XADD', KEYS[2], 'MAXLEN', '~', ARGV[1], '*', 'k', ARGV[2], 't', 'tombstone')`,
   2,
 )
 

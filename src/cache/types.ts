@@ -59,7 +59,8 @@ export interface SingleFlightCacheOptions<T> {
    */
   extendLock?: boolean
   /**
-   * Codec used to serialise / deserialise values stored in Redis.
+   * Codec used to serialise / deserialise values stored in Redis and to
+   * copy values entering or leaving the local cache.
    * Accepts `'json'` (default), `'msgpack'`, or a custom `Codec`.
    * The `'msgpack'` codec requires installing `msgpackr` separately.
    */
@@ -79,7 +80,7 @@ export interface SingleFlightCacheOptions<T> {
   maxSize?: number
 }
 
-export interface CacheEvents<T> {
+export interface CacheEvents {
   hit: (key: string, source: 'local' | 'redis' | 'stream') => void
   miss: (key: string) => void
   refresh: (key: string) => void

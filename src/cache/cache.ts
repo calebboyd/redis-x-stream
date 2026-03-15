@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events'
 import { randomUUID } from 'crypto'
 import { RedisStream } from '../stream.js'
-import { createClient } from '../redis.js'
+import { closeClient, createClient } from '../redis.js'
 import { resolveCodec } from '../queue/codec.js'
 import { CACHE_GET, CACHE_SET, CACHE_INVALIDATE, CACHE_EXTEND_LOCK } from './lua.js'
 import type { RedisClient, RedisOptions } from '../types.js'
@@ -12,10 +12,22 @@ function normalizeError(err: unknown): Error {
   return err instanceof Error ? err : new Error(String(err))
 }
 
+function compareRedisIds(left: string, right: string): number {
+  const [leftMs = '0', leftSeq = '0'] = left.split('-')
+  const [rightMs = '0', rightSeq = '0'] = right.split('-')
+  const leftTime = BigInt(leftMs)
+  const rightTime = BigInt(rightMs)
+  if (leftTime !== rightTime) return leftTime < rightTime ? -1 : 1
+  const leftOrder = BigInt(leftSeq)
+  const rightOrder = BigInt(rightSeq)
+  if (leftOrder === rightOrder) return 0
+  return leftOrder < rightOrder ? -1 : 1
+}
+
 // Typed as ParseFn (kv: string[]) but called with buffers: true at runtime,
 // so kv entries are actually Buffers.  toString() works for both types; the
 // only place the difference matters is the raw value extraction below.
-function parseStreamResult(_id: string, kv: string[]): StreamResult {
+function parseStreamResult(_id: string, kv: Buffer[] | string[]): StreamResult {
   let key: string | undefined
   let type: string | undefined
   let value: Buffer | undefined
@@ -69,6 +81,7 @@ export class SingleFlightCache<T> extends EventEmitter {
 
   private readonly localCache = new Map<string, { value: T; expiresAt: number }>()
   private readonly pending = new Map<string, PendingEntry<T>>()
+  private readonly invalidateBarriers = new Map<string, string>()
   private closed = false
   private listenerPromise: Promise<void>
 
@@ -121,13 +134,13 @@ export class SingleFlightCache<T> extends EventEmitter {
 
   // ---- Typed event emitter overrides ----
 
-  public override on<K extends keyof CacheEvents<T>>(event: K, listener: CacheEvents<T>[K]): this {
+  public override on<K extends keyof CacheEvents>(event: K, listener: CacheEvents[K]): this {
     return super.on(event, listener)
   }
 
-  public override emit<K extends keyof CacheEvents<T>>(
+  public override emit<K extends keyof CacheEvents>(
     event: K,
-    ...args: Parameters<CacheEvents<T>[K]>
+    ...args: Parameters<CacheEvents[K]>
   ): boolean {
     return super.emit(event, ...args)
   }
@@ -150,7 +163,7 @@ export class SingleFlightCache<T> extends EventEmitter {
         this.localCache.set(key, local)
       }
       this.emit('hit', key, 'local')
-      return local.value
+      return this.copyValue(local.value)
     }
     this.localCache.delete(key)
 
@@ -184,7 +197,12 @@ export class SingleFlightCache<T> extends EventEmitter {
       't',
       'value',
     )
-    await pipeline.exec()
+    const results = await pipeline.exec()
+    if (results) {
+      for (const [err] of results) {
+        if (err) throw err
+      }
+    }
 
     this.resolveEntry(key, value)
   }
@@ -197,7 +215,7 @@ export class SingleFlightCache<T> extends EventEmitter {
   public peek(key: string): T | undefined {
     const local = this.localCache.get(key)
     if (local && local.expiresAt > Date.now()) {
-      return local.value
+      return this.copyValue(local.value)
     }
     return undefined
   }
@@ -212,13 +230,22 @@ export class SingleFlightCache<T> extends EventEmitter {
 
   public async invalidate(key: string): Promise<void> {
     this.localCache.delete(key)
-    await CACHE_INVALIDATE.exec(
+    const invalidateId = await CACHE_INVALIDATE.exec(
       this.client,
       `${this.keyPrefix}${key}`,
       this.resultStream,
       this.resultMaxLen.toString(),
       key,
     )
+    if (typeof invalidateId === 'string') {
+      this.invalidateBarriers.set(key, invalidateId)
+    } else if (Buffer.isBuffer(invalidateId)) {
+      this.invalidateBarriers.set(key, invalidateId.toString())
+    }
+    // A stale value message can arrive while the invalidation Lua script is
+    // in flight, before the barrier is known. Clear local state again after
+    // recording the barrier so the key stays invalidated locally.
+    this.localCache.delete(key)
   }
 
   public async close(): Promise<void> {
@@ -251,10 +278,7 @@ export class SingleFlightCache<T> extends EventEmitter {
     await this.listenerPromise
 
     if (this.createdClient) {
-      await Promise.all([
-        new Promise((resolve) => this.client.once('end', resolve)),
-        this.client.quit(),
-      ])
+      await closeClient(this.client)
     }
 
     this.emit('closed')
@@ -443,21 +467,31 @@ export class SingleFlightCache<T> extends EventEmitter {
   // ---- Internal: stream listener ----
 
   private async listenForResults(): Promise<void> {
-    for await (const [, [, result]] of this.listener) {
+    for await (const [, [id, result]] of this.listener) {
       if (this.closed) break
       try {
-        this.handleStreamResult(result)
+        this.handleStreamResult(id.toString(), result)
       } catch (err) {
         this.emit('error', normalizeError(err))
       }
     }
   }
 
-  private handleStreamResult(result: StreamResult): void {
+  private handleStreamResult(id: string, result: StreamResult): void {
     if (!result.key) return
+
+    const barrier = this.invalidateBarriers.get(result.key)
+    const isOlderThanBarrier = barrier ? compareRedisIds(id, barrier) < 0 : false
+    if (isOlderThanBarrier) {
+      return
+    }
+    const barrierSatisfied = Boolean(barrier)
 
     if (result.type === 'tombstone') {
       this.localCache.delete(result.key)
+      if (barrierSatisfied) {
+        this.invalidateBarriers.delete(result.key)
+      }
       return
     }
 
@@ -471,6 +505,9 @@ export class SingleFlightCache<T> extends EventEmitter {
     if (result.type === 'value' && result.value) {
       const value = this.codec.decode<T>(result.value)
       this.setLocal(result.key, value)
+      if (barrierSatisfied) {
+        this.invalidateBarriers.delete(result.key)
+      }
       if (!skipResolve) {
         this.emit('hit', result.key, 'stream')
         this.resolveEntry(result.key, value)
@@ -488,7 +525,7 @@ export class SingleFlightCache<T> extends EventEmitter {
     this.pending.delete(key)
     for (const waiter of entry.waiters) {
       waiter.cleanup?.()
-      waiter.resolve(value)
+      waiter.resolve(this.copyValue(value))
     }
   }
 
@@ -504,10 +541,17 @@ export class SingleFlightCache<T> extends EventEmitter {
     }
   }
 
+  private copyValue(value: T): T {
+    return this.codec.decode<T>(this.codec.encode(value))
+  }
+
   private setLocal(key: string, value: T): void {
     // Delete first so re-insertion moves the key to the end (LRU order)
     if (this.maxSize) this.localCache.delete(key)
-    this.localCache.set(key, { value, expiresAt: Date.now() + this.localTtl })
+    this.localCache.set(key, {
+      value: this.copyValue(value),
+      expiresAt: Date.now() + this.localTtl,
+    })
     // Evict oldest entry if over capacity
     if (this.maxSize && this.localCache.size > this.maxSize) {
       const oldest = this.localCache.keys().next().value

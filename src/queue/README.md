@@ -130,8 +130,8 @@ async handler(job, ctx) {
 }
 ```
 
-Forwarded entries are written atomically with the ack. If a forward fails
-(e.g. wrong key type), the error is emitted but the ack still succeeds.
+Forwarded entries are written in the same pipeline as the ack. If a forward
+fails (e.g. wrong key type), the error is emitted but the ack still succeeds.
 
 ### Output Stream
 

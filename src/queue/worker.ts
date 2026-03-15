@@ -255,14 +255,28 @@ export class Worker<T> extends EventEmitter {
   }
 
   private async waitForSettle(timeout?: number): Promise<boolean> {
-    const tasks = [...this.inFlight, ...this.retryTasks]
-    if (tasks.length === 0) return true
-    const settle = Promise.allSettled(tasks).then(() => true)
-    if (timeout == null) return settle
-    const timed = new Promise<boolean>((resolve) => {
-      setTimeout(() => resolve(false), timeout).unref?.()
-    })
-    return Promise.race([settle, timed])
+    const deadline = timeout == null ? null : Date.now() + timeout
+
+    while (true) {
+      const tasks = [...this.inFlight, ...this.retryTasks]
+      if (tasks.length === 0) return true
+
+      const settle = Promise.allSettled(tasks).then(() => true)
+      if (deadline == null) {
+        await settle
+        continue
+      }
+
+      const remaining = deadline - Date.now()
+      if (remaining <= 0) return false
+
+      const timed = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), remaining).unref?.()
+      })
+
+      const settled = await Promise.race([settle, timed])
+      if (!settled) return false
+    }
   }
 
   private async pump(): Promise<void> {
@@ -375,10 +389,18 @@ export class Worker<T> extends EventEmitter {
     error: Error,
   ): Promise<void> {
     if (job.attempt < this.retries) {
-      await this.ackAndEnqueue(streamKey, entryId, [])
       const nextAttempt = job.attempt + 1
+      const meta: JobMeta = {
+        attempt: nextAttempt,
+        createdAt: job.createdAt,
+        originId: job.originId,
+      }
       this.emit('retrying', job, error, nextAttempt)
-      this.scheduleRetry(streamKey, job, nextAttempt)
+      if (this.abortController.signal.aborted) {
+        await this.retryAfter(streamKey, entryId, job.data, meta, 0)
+      } else {
+        this.scheduleRetry(streamKey, entryId, job, meta)
+      }
       return
     }
 
@@ -478,31 +500,26 @@ export class Worker<T> extends EventEmitter {
     }
   }
 
-  private scheduleRetry(streamKey: string, job: Job<T>, nextAttempt: number): void {
+  private scheduleRetry(streamKey: string, entryId: string, job: Job<T>, meta: JobMeta): void {
     const delay = this.getBackoffDelay(job.attempt)
-    const meta: JobMeta = {
-      attempt: nextAttempt,
-      createdAt: job.createdAt,
-      originId: job.originId,
-    }
 
-    const task = this.retryAfter(streamKey, job.data, meta, delay)
+    const task = this.retryAfter(streamKey, entryId, job.data, meta, delay)
     this.retryTasks.add(task)
     task.finally(() => this.retryTasks.delete(task))
   }
 
   private async retryAfter(
     streamKey: string,
+    entryId: string,
     data: T,
     meta: JobMeta,
     delay: number,
   ): Promise<void> {
     await wait(delay, this.abortController.signal)
 
-    // Always re-add the job, even if aborted. The original entry has already
-    // been acked, so skipping the re-add would lose the job entirely.
     try {
       await this.enqueue(streamKey, data, meta)
+      await this.ackAndEnqueue(streamKey, entryId, [])
     } catch (error) {
       this.emit('error', normalizeError(error))
     }

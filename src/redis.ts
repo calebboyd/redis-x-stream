@@ -34,7 +34,7 @@ export async function readAckDelete(
   }
 
   const read = stream.group ? xreadgroup : xread
-  xgroup(pipeline, stream)
+  const hadAddedStreams = xgroup(pipeline, stream)
   ack(pipeline, stream)
 
   // Claim idle entries from other consumers.  Skipped on the first read
@@ -46,9 +46,18 @@ export async function readAckDelete(
       : []
 
   read(pipeline, stream)
-  const responses = await pipeline.exec()
+  let responses
+  try {
+    responses = await pipeline.exec()
+  } catch (error) {
+    if (hadAddedStreams) {
+      stream.failAddingStreams(error instanceof Error ? error : new Error(String(error)))
+    }
+    throw error
+  }
 
   if (!responses) {
+    if (hadAddedStreams) stream.finishAddingStreams()
     return
   }
 
@@ -57,9 +66,11 @@ export async function readAckDelete(
   // are propagated to the caller — the generator's try/finally ensures cleanup.
   for (const result of responses) {
     if (result[0] && !result[0]?.message.startsWith('BUSYGROUP')) {
+      if (hadAddedStreams) stream.failAddingStreams(result[0])
       throw result[0]
     }
   }
+  if (hadAddedStreams) stream.finishAddingStreams()
 
   // Parse XAUTOCLAIM results (positioned before the final XREADGROUP response)
   const claimed: XStreamResult[] = []
@@ -78,6 +89,16 @@ export async function readAckDelete(
 
   // XREADGROUP / XREAD result is always the last pipeline response
   const result = responses[responses.length - 1][1] as XStreamResult[] | null
+
+  // Handle first read: set up PEL drain so startup paginates through
+  // pending entries using COUNT rather than fetching the entire PEL at once.
+  if (stream.first && stream.group) {
+    if (!stream.pelDrainStreams) stream.pelDrainStreams = new Set()
+    for (const [key] of stream.streams) {
+      stream.pelDrainStreams.add(key)
+    }
+    stream.first = false
+  }
 
   // Check if any PEL-draining streams have been fully drained.
   // A stream's PEL is exhausted when it returns 0 entries — switch it to '>'.
@@ -146,8 +167,9 @@ export function ack(
 }
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
-function xgroup(client: ChainableCommander, stream: RedisStream<any>): void {
+function xgroup(client: ChainableCommander, stream: RedisStream<any>): boolean {
   const { group, streams, first, addedStreams } = stream
+  const hadAddedStreams = !!addedStreams
   if (addedStreams) {
     for (const [key, start] of addedStreams) {
       if (group && !first) {
@@ -164,11 +186,12 @@ function xgroup(client: ChainableCommander, stream: RedisStream<any>): void {
     }
     stream.addedStreams = null
   }
-  if (!first || !group) return
+  if (!first || !group) return hadAddedStreams
   for (const [key, start] of streams) {
     debug(`xgroup create ${key} ${group} ${start} mkstream`)
     client.xgroup('CREATE', key, group, start, 'MKSTREAM')
   }
+  return hadAddedStreams
 }
 
 //eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -187,7 +210,7 @@ function xread(
 function xreadgroup(
   client: ChainableCommander,
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { block, count, first, group, consumer, noack, streams, buffers }: RedisStream<any>,
+  { block, count, group, consumer, noack, streams, buffers }: RedisStream<any>,
 ): void {
   block = block === Infinity ? 0 : block
   const args: Parameters<(typeof client)['xreadgroup']> = [
@@ -195,7 +218,7 @@ function xreadgroup(
     group as string,
     consumer as string,
   ] as IncrementalParameters
-  if (!first) args.push('COUNT', count.toString())
+  args.push('COUNT', count.toString())
   if (noack) args.push('NOACK')
   if (isNumber(block)) args.push('BLOCK', block.toString())
   args.push('STREAMS', ...streams.keys(), ...streams.values())
@@ -261,4 +284,31 @@ export function createClient(options?: Redis | string | RedisOptions) {
     client = new Redis()
   }
   return { client, created }
+}
+
+export async function closeClient(client?: Redis): Promise<void> {
+  if (!client || (client.status as string) === 'end') return
+
+  const ended = new Promise<void>((resolve) => {
+    const done = () => {
+      client.off('close', done)
+      client.off('end', done)
+      resolve()
+    }
+    client.once('close', done)
+    client.once('end', done)
+  })
+
+  if (client.status === 'ready') {
+    try {
+      await client.quit()
+    } catch {
+      client.disconnect()
+    }
+  } else {
+    client.disconnect()
+  }
+
+  if ((client.status as string) === 'end') return
+  await ended
 }

@@ -1,7 +1,6 @@
-import Redis from 'ioredis'
 import { describe, expect, it, afterEach } from 'vitest'
 import { SingleFlightCache } from './cache.js'
-import { delay, quit, rand } from '../test.util.spec.js'
+import { delay, rand } from '../test.util.spec.js'
 
 async function waitFor(
   condition: () => boolean | Promise<boolean>,
@@ -49,6 +48,56 @@ describe('SingleFlightCache', () => {
     const result2 = await cache.get('key1')
     expect(result2).toEqual({ n: 42 })
     expect(fetchCount).toBe(1)
+  })
+
+  it('returns detached copies from the local cache', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+
+    const cache = new SingleFlightCache<{ nested: { n: number }; items: number[] }>({
+      fetcher: async () => ({ nested: { n: 1 }, items: [1] }),
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    const first = await cache.get('clone-key')
+    first.nested.n = 99
+    first.items.push(2)
+
+    const second = await cache.get('clone-key')
+    expect(second).toEqual({ nested: { n: 1 }, items: [1] })
+    expect(second).not.toBe(first)
+    expect(second.nested).not.toBe(first.nested)
+  })
+
+  it('returns detached copies to coalesced waiters', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+
+    const cache = new SingleFlightCache<{ nested: { n: number } }>({
+      fetcher: async () => {
+        await delay(50)
+        return { nested: { n: 1 } }
+      },
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    const [first, second] = await Promise.all([
+      cache.get('clone-coalesce'),
+      cache.get('clone-coalesce'),
+    ])
+
+    expect(first).toEqual({ nested: { n: 1 } })
+    expect(second).toEqual({ nested: { n: 1 } })
+    expect(first).not.toBe(second)
+
+    first.nested.n = 7
+    expect(second).toEqual({ nested: { n: 1 } })
   })
 
   it('coalesces concurrent requests for the same key', async () => {
@@ -141,6 +190,65 @@ describe('SingleFlightCache', () => {
     const second = await cache.get('inv-key')
     expect(second).toEqual({ n: 2 })
     expect(fetchCount).toBe(2)
+  })
+
+  it('ignores stale stream values that predate an invalidation barrier', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+    let fetchCount = 0
+
+    const cache = new SingleFlightCache<{ n: number }>({
+      fetcher: async () => {
+        fetchCount++
+        return { n: fetchCount }
+      },
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    expect(await cache.get('inv-local')).toEqual({ n: 1 })
+    await cache.invalidate('inv-local')
+
+    const internal = cache as any
+    await internal.codecReady
+    internal.handleStreamResult('0-0', {
+      key: 'inv-local',
+      type: 'value',
+      value: internal.codec.encode({ n: 1 }),
+    })
+
+    expect(cache.peek('inv-local')).toBeUndefined()
+
+    const second = await cache.get('inv-local')
+    expect(second).toEqual({ n: 2 })
+    expect(fetchCount).toBe(2)
+  })
+
+  it('clears the invalidation barrier once the tombstone is observed', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+
+    const cache = new SingleFlightCache<{ n: number }>({
+      fetcher: async () => ({ n: 1 }),
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    await cache.invalidate('inv-stream')
+
+    const internal = cache as any
+    const barrier = internal.invalidateBarriers.get('inv-stream')
+    expect(typeof barrier).toBe('string')
+    internal.handleStreamResult(barrier, {
+      key: 'inv-stream',
+      type: 'tombstone',
+    })
+
+    expect(internal.invalidateBarriers.has('inv-stream')).toBe(false)
   })
 
   it('manual set() updates local and Redis cache', async () => {
@@ -315,11 +423,8 @@ describe('SingleFlightCache', () => {
   it('rejects with fetch timeout when retry fetch hangs', async () => {
     const prefix = `sfc-${rand()}:`
     const stream = `results-${rand()}`
-    let fetchCount = 0
-
     const cache = new SingleFlightCache<{ n: number }>({
       fetcher: async () => {
-        fetchCount++
         // Every fetch hangs forever
         return new Promise(() => {})
       },
@@ -385,6 +490,49 @@ describe('SingleFlightCache', () => {
     // After local TTL expires, peek returns undefined
     await delay(80)
     expect(cache.peek('peek-key')).toBeUndefined()
+  })
+
+  it('peek() returns detached copies', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+
+    const cache = new SingleFlightCache<{ nested: { n: number } }>({
+      fetcher: async () => ({ nested: { n: 1 } }),
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    await cache.get('peek-copy')
+
+    const first = cache.peek('peek-copy')
+    expect(first).toEqual({ nested: { n: 1 } })
+
+    first!.nested.n = 8
+
+    const second = cache.peek('peek-copy')
+    expect(second).toEqual({ nested: { n: 1 } })
+    expect(second).not.toBe(first)
+  })
+
+  it('set() stores a detached local copy', async () => {
+    const prefix = `sfc-${rand()}:`
+    const stream = `results-${rand()}`
+
+    const cache = new SingleFlightCache<{ nested: { n: number } }>({
+      fetcher: async () => ({ nested: { n: -1 } }),
+      keyPrefix: prefix,
+      resultStream: stream,
+      timeout: 2000,
+    })
+    cleanups.push(() => cache.close())
+
+    const value = { nested: { n: 1 } }
+    await cache.set('manual-copy', value)
+    value.nested.n = 2
+
+    expect(cache.peek('manual-copy')).toEqual({ nested: { n: 1 } })
   })
 
   it('clear() removes all entries from the local cache', async () => {
@@ -534,5 +682,22 @@ describe('SingleFlightCache', () => {
     await promise
 
     expect(receivedSignal!.aborted).toBe(true)
+  })
+
+  it('close() resolves promptly when created clients never connect', async () => {
+    const cache = new SingleFlightCache<{ n: number }>({
+      fetcher: async () => ({ n: 1 }),
+      redis: 'redis://127.0.0.1:6739',
+      keyPrefix: `sfc-${rand()}:`,
+      resultStream: `results-${rand()}`,
+      timeout: 100,
+    })
+
+    const result = await Promise.race([
+      cache.close().then(() => 'closed'),
+      delay(1000).then(() => 'timeout'),
+    ])
+
+    expect(result).toBe('closed')
   })
 })
