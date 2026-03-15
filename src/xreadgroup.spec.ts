@@ -473,6 +473,44 @@ describe('redis-x-stream xreadgroup', () => {
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
 
+  it('should paginate PEL on initial boot when PEL exceeds count', async () => {
+    const streamKey = key('my-stream')
+    await hydrateForTest(writer, streamKey)
+    expect(testEntries.length).toBeGreaterThan(3)
+
+    // Consumer reads all entries without acking → fills PEL
+    const prev = redisStream({
+      group: 'my-group',
+      consumer: 'my-consumer',
+      streams: [streamKey],
+    })
+    await drain(prev)
+
+    // Same consumer restarts with count=3 (smaller than PEL).
+    // All PEL entries must be delivered via paginated reads, not
+    // fetched in a single unbounded batch.
+    const stream = new RedisStream({
+      streams: [streamKey],
+      count: 3,
+      group: 'my-group',
+      consumer: 'my-consumer',
+      ackOnIterate: true,
+    })
+    let idx = 0
+    for await (const [name, entry] of stream) {
+      expect(name).toEqual(streamKey)
+      expect(entry[0]).toMatch(redisIdRegex)
+      expect(entry[1]).toEqual(testEntries[idx++])
+    }
+    // Every PEL entry was delivered despite count being smaller than PEL size
+    expect(idx).toEqual(testEntries.length)
+
+    // All entries should be acked — nothing left in PEL
+    const verify = redisStream({ group: 'my-group', streams: [streamKey] })
+    const remaining = await drain(verify)
+    expect(remaining.get(streamKey)).toBeUndefined()
+  })
+
   it('should ack the last entry when break terminates the loop', async () => {
     const streamKey = key('my-stream')
     await hydrateForTest(writer, streamKey)
@@ -757,7 +795,7 @@ describe('redis-x-stream xreadgroup', () => {
       group: 'my-group',
       streams: [streamKey],
       ackOnIterate: true,
-      parse: (_id, kv) => ({ field: kv[1] }),
+      parse: (_id, kv) => ({ field: kv[1]?.toString() }),
     })
     const parsed: Msg[] = []
     for await (const [name, [id, msg]] of stream) {

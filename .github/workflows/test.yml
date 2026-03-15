@@ -52,6 +52,9 @@ jobs:
     name: redis-x-stream (Node ${{ matrix.node }})
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}

@@ -79,6 +79,16 @@ export async function readAckDelete(
   // XREADGROUP / XREAD result is always the last pipeline response
   const result = responses[responses.length - 1][1] as XStreamResult[] | null
 
+  // Handle first read: set up PEL drain so startup paginates through
+  // pending entries using COUNT rather than fetching the entire PEL at once.
+  if (stream.first && stream.group) {
+    if (!stream.pelDrainStreams) stream.pelDrainStreams = new Set()
+    for (const [key] of stream.streams) {
+      stream.pelDrainStreams.add(key)
+    }
+    stream.first = false
+  }
+
   // Check if any PEL-draining streams have been fully drained.
   // A stream's PEL is exhausted when it returns 0 entries — switch it to '>'.
   // If PEL had entries they stay in `pelDrainStreams` and the iterator's yield
@@ -187,7 +197,7 @@ function xread(
 function xreadgroup(
   client: ChainableCommander,
   //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  { block, count, first, group, consumer, noack, streams, buffers }: RedisStream<any>,
+  { block, count, group, consumer, noack, streams, buffers }: RedisStream<any>,
 ): void {
   block = block === Infinity ? 0 : block
   const args: Parameters<(typeof client)['xreadgroup']> = [
@@ -195,7 +205,7 @@ function xreadgroup(
     group as string,
     consumer as string,
   ] as IncrementalParameters
-  if (!first) args.push('COUNT', count.toString())
+  args.push('COUNT', count.toString())
   if (noack) args.push('NOACK')
   if (isNumber(block)) args.push('BLOCK', block.toString())
   args.push('STREAMS', ...streams.keys(), ...streams.values())
@@ -261,4 +271,31 @@ export function createClient(options?: Redis | string | RedisOptions) {
     client = new Redis()
   }
   return { client, created }
+}
+
+export async function closeClient(client?: Redis): Promise<void> {
+  if (!client || (client.status as string) === 'end') return
+
+  const ended = new Promise<void>((resolve) => {
+    const done = () => {
+      client.off('close', done)
+      client.off('end', done)
+      resolve()
+    }
+    client.once('close', done)
+    client.once('end', done)
+  })
+
+  if (client.status === 'ready') {
+    try {
+      await client.quit()
+    } catch {
+      client.disconnect()
+    }
+  } else {
+    client.disconnect()
+  }
+
+  if ((client.status as string) === 'end') return
+  await ended
 }

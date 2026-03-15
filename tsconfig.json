@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2018",
     "outDir": "lib/es2018",
-    "module": "ES2015",
+    "module": "ES2020",
     "moduleResolution": "node",
     "declaration": true,
     "skipLibCheck": true,
