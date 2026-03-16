@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [4.1.0](https://github.com/calebboyd/redis-x-stream/compare/v4.0.0...v4.1.0) (2026-03-16)
+
+
+### Features
+
+* **cache:** add a cache submodule ([ab3ea7d](https://github.com/calebboyd/redis-x-stream/commit/ab3ea7db2ede9e7433234cdb0c9884dbbe04747b))
+* initial queue ([be10867](https://github.com/calebboyd/redis-x-stream/commit/be10867412b1e031fef5d2c78a3f5d6710e8221f))
+
 # [4.0.0](https://github.com/calebboyd/redis-x-stream/compare/v3.2.3...v4.0.0) (2026-02-21)
 
 
