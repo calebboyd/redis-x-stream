@@ -4,9 +4,11 @@ import {
   delay,
   hydrateForTest,
   quit,
+  setTimeoutAsync,
   testEntries,
   redisIdRegex,
   randNum,
+  withHandledRejection,
 } from './test.util.spec.js'
 import { RedisStream } from './stream.js'
 import { RedisClient } from './types.js'
@@ -53,6 +55,7 @@ describe('redis-x-stream xread', () => {
 
   it('should block waiting for new entries', async () => {
     let entries = 0
+    let laterHydrate: Promise<unknown> | undefined
     const streamName = key('my-stream'),
       block = 200,
       iterable = new RedisStream({
@@ -64,9 +67,10 @@ describe('redis-x-stream xread', () => {
     await hydrate()
     for await (const _ of iterable) {
       if (entries++ === testEntries.length - 1) {
-        delay(block - 20).then(hydrate)
+        laterHydrate = withHandledRejection(delay(block - 20).then(() => hydrate()))
       }
     }
+    await laterHydrate
     expect(entries).toEqual(testEntries.length * 2)
   })
 
@@ -101,25 +105,29 @@ describe('redis-x-stream xread', () => {
       count: randNum(300, 400),
     })
     let i = 0
+    let addStreamLater: Promise<void> | undefined
+    let quitLater: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        setTimeout(() => {
+        addStreamLater = setTimeoutAsync(() => {
           expect(stream.reading).toBe(true)
-          stream.addStream(laterStream)
+          return stream.addStream(laterStream)
         })
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
       if (i === testEntries.length * 2 - 1) {
-        setTimeout(() => {
+        quitLater = setTimeoutAsync(() => {
           i++
-          stream.quit() //break;
+          return stream.quit() //break;
         }, 100)
       }
     }
+    await addStreamLater
+    await quitLater
     //stream will block indefinitely (i++ in the future to assert after loop)
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
