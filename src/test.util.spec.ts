@@ -10,6 +10,18 @@ const chance = new Chance(seed)
 const debug = mkDebug('test-redis-x-stream')
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms)),
+  withHandledRejection = <T>(promise: Promise<T>): Promise<T> => {
+    void promise.catch(() => {})
+    return promise
+  },
+  setTimeoutAsync = <T>(work: () => Promise<T> | T, ms = 0): Promise<T> =>
+    withHandledRejection(
+      new Promise<T>((resolve, reject) => {
+        setTimeout(() => {
+          Promise.resolve().then(work).then(resolve, reject)
+        }, ms)
+      }),
+    ),
   times = <T>(count: number, fn: (_: undefined, i: number) => T): Array<T> =>
     Array.from(Array(count), fn) as T[],
   quit = async (client: RedisClient): Promise<void> => {
@@ -44,4 +56,16 @@ afterAll(() => {
   console.log(`Seed set to: ${seed}`)
 })
 
-export { delay, times, quit, hydrateForTest, rand, randNum, testEntries, redisIdRegex, drain }
+export {
+  delay,
+  withHandledRejection,
+  setTimeoutAsync,
+  times,
+  quit,
+  hydrateForTest,
+  rand,
+  randNum,
+  testEntries,
+  redisIdRegex,
+  drain,
+}

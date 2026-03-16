@@ -8,7 +8,9 @@ import {
   quit,
   rand,
   redisIdRegex,
+  setTimeoutAsync,
   testEntries,
+  withHandledRejection,
 } from './test.util.spec.js'
 import redisStream, { RedisStream } from './stream.js'
 import { RedisClient } from './types.js'
@@ -324,25 +326,29 @@ describe('redis-x-stream xreadgroup', () => {
       ackOnIterate: true,
     })
     let i = 0
+    let addStreamLater: Promise<void> | undefined
+    let quitLater: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        setTimeout(() => {
+        addStreamLater = setTimeoutAsync(() => {
           expect(stream.reading).toBe(true)
-          stream.addStream(laterStream)
+          return stream.addStream(laterStream)
         })
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
       if (i === testEntries.length * 2 - 1) {
-        setTimeout(() => {
+        quitLater = setTimeoutAsync(() => {
           i++
-          stream.quit()
+          return stream.quit()
         }, 100)
       }
     }
+    await addStreamLater
+    await quitLater
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
 
@@ -361,27 +367,31 @@ describe('redis-x-stream xreadgroup', () => {
     })
     let i = 0
     let laterWrites: Promise<void> | undefined
+    let quitLater: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        laterWrites = (async () => {
-          await waitFor(() => stream.reading)
-          await stream.addStream({ [laterStream]: '$' })
-          await hydrateForTest(writer, laterStream)
-        })()
+        laterWrites = withHandledRejection(
+          (async () => {
+            await waitFor(() => stream.reading)
+            await stream.addStream({ [laterStream]: '$' })
+            await hydrateForTest(writer, laterStream)
+          })(),
+        )
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
       if (i === testEntries.length * 2 - 1) {
-        setTimeout(() => {
+        quitLater = setTimeoutAsync(() => {
           i++
-          stream.quit()
+          return stream.quit()
         }, 100)
       }
     }
     await laterWrites
+    await quitLater
     // Got all entries from myStream + only newly-written entries from laterStream
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
@@ -399,11 +409,13 @@ describe('redis-x-stream xreadgroup', () => {
       ackOnIterate: true,
     })
 
-    const iterator = (async () => {
-      for await (const _ of stream) {
-        void _
-      }
-    })()
+    const iterator = withHandledRejection(
+      (async () => {
+        for await (const _ of stream) {
+          void _
+        }
+      })(),
+    )
 
     await waitFor(() => stream.reading)
     await stream.addStream({ [laterStream]: '$' })
@@ -442,25 +454,29 @@ describe('redis-x-stream xreadgroup', () => {
       ackOnIterate: true,
     })
     let i = 0
+    let addStreamLater: Promise<void> | undefined
+    let quitLater: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        setTimeout(() => {
+        addStreamLater = setTimeoutAsync(() => {
           expect(stream.reading).toBe(true)
-          stream.addStream(laterStream)
+          return stream.addStream(laterStream)
         })
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
       if (i === testEntries.length * 2 - 1) {
-        setTimeout(() => {
+        quitLater = setTimeoutAsync(() => {
           i++
-          stream.quit()
+          return stream.quit()
         }, 100)
       }
     }
+    await addStreamLater
+    await quitLater
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
 
@@ -491,25 +507,29 @@ describe('redis-x-stream xreadgroup', () => {
       ackOnIterate: true,
     })
     let i = 0
+    let addStreamLater: Promise<void> | undefined
+    let quitLater: Promise<void> | undefined
     for await (const [streamName, _] of stream) {
       i++
       if (i === testEntries.length) {
         expect(streamName).toEqual(myStream)
-        setTimeout(() => {
+        addStreamLater = setTimeoutAsync(() => {
           expect(stream.reading).toBe(true)
-          stream.addStream(laterStream)
+          return stream.addStream(laterStream)
         })
       }
       if (i > testEntries.length) {
         expect(streamName).toEqual(laterStream)
       }
       if (i === testEntries.length * 2 - 1) {
-        setTimeout(() => {
+        quitLater = setTimeoutAsync(() => {
           i++
-          stream.quit()
+          return stream.quit()
         }, 100)
       }
     }
+    await addStreamLater
+    await quitLater
     // All entries from both streams, despite count=3 << PEL size
     expect(i).toEqual(testEntries.length * 2 + 1)
   })
